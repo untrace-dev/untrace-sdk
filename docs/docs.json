@@ -1,0 +1,130 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "banner": {
+    "content": "Untrace is currently in beta - Route LLM traces to any observability platform."
+  },
+  "colors": {
+    "dark": "#6366f1",
+    "light": "#6366f1",
+    "primary": "#6366f1"
+  },
+  "description": "Untrace is the Segment.io for LLM Observability - capture LLM traces once and route them to any observability platform.",
+  "favicon": "/logo/favicon.png",
+  "fonts": {
+    "family": "Geist",
+    "format": "woff2",
+    "source": "https://fonts.gstatic.com/s/geist/v3/gyByhwUxId8gMEwcGFWNOITd.woff2",
+    "weight": 400
+  },
+  "footer": {
+    "socials": {
+      "discord": "https://discord.gg/untrace",
+      "github": "https://github.com/untrace-dev/untrace",
+      "twitter": "https://twitter.com/untrace_dev"
+    }
+  },
+  "icons": {
+    "library": "lucide"
+  },
+  "integrations": {
+    "posthog": {
+      "apiHost": "https://us.api.posthog.com",
+      "apiKey": "phc_KaX5gqla4Oco74fZowSXJ4nfoDG4TqhXRyIHr3TExcG"
+    }
+  },
+  "logo": {
+    "dark": "/logo/logo-dark.svg",
+    "light": "/logo/logo-light.svg"
+  },
+  "name": "Untrace",
+  "navbar": {
+    "links": [
+      {
+        "href": "mailto:support@untrace.dev",
+        "label": "Support"
+      },
+      {
+        "href": "https://app.untrace.dev",
+        "label": "Dashboard"
+      }
+    ],
+    "primary": {
+      "href": "https://app.untrace.dev/signup?utm_source=docs",
+      "label": "Start Free Trial",
+      "type": "button"
+    }
+  },
+  "navigation": {
+    "global": {
+      "anchors": [
+        {
+          "anchor": "Github",
+          "href": "https://github.com/untrace-dev/untrace",
+          "icon": "github"
+        },
+        {
+          "anchor": "Changelog",
+          "href": "https://github.com/untrace-dev/untrace/releases",
+          "icon": "newspaper"
+        },
+        {
+          "anchor": "Community",
+          "href": "https://discord.gg/untrace",
+          "icon": "discord"
+        }
+      ]
+    },
+    "tabs": [
+      {
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": ["introduction", "quickstart", "providers"]
+          },
+          {
+            "group": "Core Features",
+            "pages": ["dashboard", "sdk"]
+          },
+          {
+            "group": "Advanced",
+            "pages": ["routing", "security", "configuration"]
+          },
+          {
+            "group": "Reference",
+            "pages": ["architecture", "essentials/data-model"]
+          },
+          {
+            "group": "Development",
+            "pages": ["contributing"]
+          }
+        ],
+        "tab": "Documentation"
+      },
+      {
+        "groups": [
+          {
+            "group": "API Documentation",
+            "pages": ["api-reference/introduction"]
+          },
+          {
+            "group": "Trace Management",
+            "pages": [
+              "api-reference/endpoint/send-trace",
+              "api-reference/endpoint/get-traces",
+              "api-reference/endpoint/get-trace"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "api-reference/endpoint/routing-rules",
+              "api-reference/endpoint/integrations"
+            ]
+          }
+        ],
+        "tab": "API Reference"
+      }
+    ]
+  },
+  "theme": "mint"
+}

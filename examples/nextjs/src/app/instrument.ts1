@@ -1,0 +1,8 @@
+/** biome-ignore-all lint/style/noNonNullAssertion: This is a valid use of any */
+import { init } from '@untrace/sdk';
+
+export async function register() {
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    init({ apiKey: process.env.UNTRACE_API_KEY! });
+  }
+}

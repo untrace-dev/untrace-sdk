@@ -1,0 +1,18 @@
+{
+  "bin": {
+    "prepare-publish": "./prepare-publish.js"
+  },
+  "exports": {
+    ".": "./prepare-publish.js"
+  },
+  "name": "@untrace/npm",
+  "private": true,
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "clean": "git clean -xdf .turbo node_modules"
+  },
+  "type": "module",
+  "version": "0.1.0"
+}

@@ -1,0 +1,86 @@
+{
+  "commitlint": {
+    "extends": [
+      "@untrace/commitlint-config"
+    ]
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.2.3",
+    "@changesets/changelog-github": "0.5.1",
+    "@changesets/cli": "2.29.6",
+    "@commitlint/cli": "19.8.1",
+    "@testing-library/react": "16.3.0",
+    "@turbo/gen": "2.5.6",
+    "@types/bun": "1.2.21",
+    "@untrace/commitlint-config": "workspace:*",
+    "bun": "1.2.21",
+    "checkly": "6.5.0",
+    "knip": "5.63.1",
+    "lefthook": "1.12.3",
+    "turbo": "2.5.6",
+    "typescript": "5.9.2",
+    "vitest": "3.2.4"
+  },
+  "engines": {
+    "node": ">=20.12.0"
+  },
+  "name": "@untrace/root",
+  "overrides": {
+    "@types/vscode": "1.96.0"
+  },
+  "packageManager": "bun@1.2.20",
+  "private": true,
+  "scripts": {
+    "build": "turbo run build",
+    "bump-versions": "changeset version && bun install",
+    "clean": "git clean -xdf node_modules .turbo",
+    "clean:ws": "turbo run clean",
+    "dev": "turbo watch dev",
+    "docs": "turbo run dev --filter=@untrace/docs...",
+    "format": "biome check",
+    "format:ci": "biome ci",
+    "format:fix": "biome check --write",
+    "knip": "knip --include files,dependencies",
+    "lint:ws": "bunx sherif@latest",
+    "postinstall": "bun lint:ws",
+    "publish": "turbo run build --filter=./packages/destinations... && changeset publish",
+    "test": "bun test",
+    "test:integ": "turbo run test --filter=@untrace/integ-test",
+    "test:integ:ci": "turbo run test:ci --filter=@untrace/integ-test",
+    "test:integ:watch": "turbo run test:watch --filter=@untrace/integ-test",
+    "typecheck": "turbo run typecheck",
+    "typecheck:ci": "turbo run typecheck",
+    "version": "changeset version && bun biome check --write",
+    "with-env": "infisical run --"
+  },
+  "trustedDependencies": [
+    "@biomejs/biome",
+    "@clerk/shared",
+    "@scarf/scarf",
+    "@sentry/cli",
+    "@tailwindcss/oxide",
+    "@vercel/speed-insights",
+    "browser-tabs-lock",
+    "bufferutil",
+    "bun",
+    "core-js",
+    "electron",
+    "esbuild",
+    "keytar",
+    "lefthook",
+    "puppeteer",
+    "sharp",
+    "supabase",
+    "yarn"
+  ],
+  "workspaces": {
+    "packages": [
+      "packages/*",
+      "examples/*",
+      "integ-tests/*",
+      "tooling/*",
+      "sdks/*",
+      "docs"
+    ]
+  }
+}

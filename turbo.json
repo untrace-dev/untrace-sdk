@@ -1,0 +1,88 @@
+{
+  "$schema": "https://turborepo.org/schema.json",
+  "concurrency": "20",
+  "globalEnv": ["NODE_ENV"],
+  "globalPassThroughEnv": [
+    "NODE_ENV",
+    "CI",
+    "VERCEL",
+    "VERCEL_ENV",
+    "VERCEL_URL",
+    "npm_lifecycle_event",
+    "TURBO_TOKEN",
+    "TURBO_TEAM",
+    "NPM_TOKEN",
+    "VERCEL_TOKEN"
+  ],
+  "tasks": {
+    "//#clean": {
+      "cache": false
+    },
+    "build": {
+      "dependsOn": ["^build"],
+      "env": [
+        "NEXT_PUBLIC_*",
+        "CLERK_*",
+        "SUPABASE_*",
+        "POSTGRES_*",
+        "POSTHOG_*",
+        "OPENAI_API_KEY"
+      ],
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**",
+        "next-env.d.ts",
+        ".expo/**",
+        ".output/**",
+        ".vercel/output/**",
+        "dist/**",
+        "build/**",
+        "bin/**",
+        "*.generated.ts"
+      ]
+    },
+    "clean": {
+      "cache": false
+    },
+    "dev": {
+      "cache": false,
+      "env": [
+        "PORT",
+        "NEXT_PUBLIC_*",
+        "CLERK_*",
+        "SUPABASE_*",
+        "POSTGRES_*",
+        "POSTHOG_*",
+        "OPENAI_API_KEY"
+      ],
+      "persistent": true
+    },
+    "format": {
+      "dependsOn": ["^build"]
+    },
+    "format:ci": {
+      "cache": false,
+      "dependsOn": ["^build"]
+    },
+    "test": {
+      "cache": false,
+      "dependsOn": ["^build"],
+      "env": ["USE_LOCAL_DB"],
+      "outputs": ["coverage/**"]
+    },
+    "test:ci": {
+      "cache": false,
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"]
+    },
+    "test:watch": {
+      "cache": false,
+      "dependsOn": ["^build"],
+      "persistent": true
+    },
+    "typecheck": {
+      "outputs": ["node_modules/.cache/tsbuildinfo.json"]
+    }
+  },
+  "ui": "tui"
+}

@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json"
+  },
+  "exclude": ["node_modules"],
+  "extends": "@untrace/tsconfig/node.json",
+  "include": ["."]
+}

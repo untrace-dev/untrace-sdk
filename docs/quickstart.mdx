@@ -1,0 +1,439 @@
+---
+title: 'Quickstart'
+description: 'Start routing LLM traces to any observability platform in under 5 minutes'
+---
+
+## Quick Start Steps
+
+<Steps>
+  <Step title="Sign Up">
+    Create your free Untrace account:
+    ```bash
+    # Visit https://app.untrace.dev to sign up
+    # Or use the CLI
+    npx @untrace/cli auth signup
+    ```
+  </Step>
+  <Step title="Get Your API Key">
+    After signing up, get your API key:
+    ```bash
+    # From the dashboard
+    https://app.untrace.dev/settings/api-keys
+
+    # Or via CLI
+    npx @untrace/cli auth login
+    ```
+  </Step>
+  <Step title="Choose Integration Method">
+    Select how you want to integrate Untrace:
+
+    **Option 1: OpenAI Proxy** (Easiest)
+    ```python
+    from openai import OpenAI
+
+    client = OpenAI(
+        base_url="https://api.untrace.dev/v1/proxy",
+        default_headers={
+            "X-Untrace-Key": "your-api-key"
+        }
+    )
+    ```
+
+    **Option 2: SDK** (Most flexible)
+    ```bash
+    npm install @untrace/sdk
+    ```
+  </Step>
+  <Step title="Configure Routing">
+    Set up where your traces should go:
+    ```typescript
+    // In the dashboard or via API
+    {
+      "rules": [{
+        "name": "Route to LangSmith",
+        "condition": "model == 'gpt-4'",
+        "destination": "langsmith"
+      }]
+    }
+    ```
+  </Step>
+</Steps>
+
+## Integration Methods
+
+### OpenAI Proxy (Recommended)
+
+The fastest way to get started - just change your base URL:
+
+<CodeGroup>
+
+```python Python
+from openai import OpenAI
+
+# Before: Direct to OpenAI
+# client = OpenAI()
+
+# After: Through Untrace
+client = OpenAI(
+    base_url="https://api.untrace.dev/v1/proxy",
+    default_headers={
+        "X-Untrace-Key": "utr_your_api_key"
+    }
+)
+
+# Use OpenAI normally - traces are captured automatically
+response = client.chat.completions.create(
+    model="gpt-4",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+```
+
+```typescript TypeScript
+import OpenAI from 'openai';
+
+// Before: Direct to OpenAI
+// const openai = new OpenAI();
+
+// After: Through Untrace
+const openai = new OpenAI({
+  baseURL: 'https://api.untrace.dev/v1/proxy',
+  defaultHeaders: {
+    'X-Untrace-Key': 'utr_your_api_key'
+  }
+});
+
+// Use OpenAI normally - traces are captured automatically
+const response = await openai.chat.completions.create({
+  model: 'gpt-4',
+  messages: [{ role: 'user', content: 'Hello!' }]
+});
+```
+
+```javascript JavaScript
+const OpenAI = require('openai');
+
+// Through Untrace proxy
+const openai = new OpenAI({
+  baseURL: 'https://api.untrace.dev/v1/proxy',
+  defaultHeaders: {
+    'X-Untrace-Key': 'utr_your_api_key'
+  }
+});
+
+// Your existing code works unchanged
+const response = await openai.chat.completions.create({
+  model: 'gpt-4',
+  messages: [{ role: 'user', content: 'Hello!' }]
+});
+```
+
+</CodeGroup>
+
+### SDK Integration
+
+For more control and auto-instrumentation of all providers:
+
+<CodeGroup>
+
+```typescript TypeScript
+import { init } from '@untrace/sdk';
+
+// Initialize Untrace
+init({
+  apiKey: 'utr_your_api_key',
+  serviceName: 'my-app',
+  environment: 'production'
+});
+
+// Now import your LLM libraries - they're auto-instrumented
+import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
+
+const openai = new OpenAI();
+const anthropic = new Anthropic();
+
+// All calls are automatically traced
+```
+
+```python Python
+from untrace import Untrace
+
+# Initialize
+untrace = Untrace(api_key="utr_your_api_key")
+
+# Use the tracer
+with untrace.trace("my-operation") as span:
+    # Your LLM calls here
+    response = openai.chat.completions.create(...)
+    span.set_output(response)
+```
+
+</CodeGroup>
+
+### Direct API
+
+For custom integrations or other languages:
+
+```bash
+curl -X POST https://api.untrace.dev/v1/traces \
+  -H "Authorization: Bearer utr_your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4",
+    "provider": "openai",
+    "prompt_tokens": 50,
+    "completion_tokens": 100,
+    "total_tokens": 150,
+    "latency_ms": 1234,
+    "timestamp": "2024-01-15T10:00:00Z"
+  }'
+```
+
+## Configure Destinations
+
+### Connect Observability Platforms
+
+1. Go to [Dashboard → Integrations](https://app.untrace.dev/integrations)
+2. Click "Add Integration"
+3. Select your platform and provide credentials:
+
+<Tabs>
+  <Tab title="LangSmith">
+    ```json
+    {
+      "platform": "langsmith",
+      "config": {
+        "apiKey": "ls_...",
+        "projectId": "your-project"
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Langfuse">
+    ```json
+    {
+      "platform": "langfuse",
+      "config": {
+        "publicKey": "pk_...",
+        "secretKey": "sk_...",
+        "host": "https://cloud.langfuse.com"
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Custom Webhook">
+    ```json
+    {
+      "platform": "webhook",
+      "config": {
+        "url": "https://your-api.com/traces",
+        "headers": {
+          "Authorization": "Bearer your-token"
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Set Up Routing Rules
+
+Configure how traces are routed:
+
+```yaml
+# Basic routing by model
+- name: "GPT-4 to LangSmith"
+  condition:
+    model: "gpt-4*"
+  destination: "langsmith"
+
+# Route errors for debugging
+- name: "Errors to Langfuse"
+  condition:
+    status: "error"
+  destination: "langfuse"
+
+# Cost-based routing
+- name: "Expensive requests"
+  condition:
+    cost: "> 0.10"
+  destinations:
+    - platform: "langsmith"
+    - platform: "webhook"
+      url: "https://alerts.example.com"
+```
+
+## Verify Installation
+
+### Check Trace Flow
+
+1. Make a test LLM call:
+```python
+response = client.chat.completions.create(
+    model="gpt-3.5-turbo",
+    messages=[{"role": "user", "content": "Test trace"}]
+)
+print(f"Trace ID: {response.headers.get('X-Untrace-ID')}")
+```
+
+2. View in dashboard:
+   - Go to [Traces](https://app.untrace.dev/traces)
+   - Find your trace by ID
+   - Verify it was routed correctly
+
+### Debug Mode
+
+Enable debug logging to troubleshoot:
+
+```typescript
+init({
+  apiKey: 'utr_your_api_key',
+  debug: true  // Enables detailed logging
+});
+```
+
+## Common Patterns
+
+### Development vs Production
+
+```typescript
+// Separate configurations by environment
+const untrace = init({
+  apiKey: process.env.UNTRACE_API_KEY,
+  environment: process.env.NODE_ENV,
+
+  // Sample less in production
+  samplingRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
+
+  // Different routing per environment
+  routingRules: process.env.NODE_ENV === 'production'
+    ? productionRules
+    : developmentRules
+});
+```
+
+### Multi-Provider Setup
+
+```python
+# Untrace works with all providers simultaneously
+import openai
+import anthropic
+from langchain.chat_models import ChatOpenAI
+
+# All are automatically instrumented
+openai_client = openai.OpenAI()
+anthropic_client = anthropic.Anthropic()
+langchain_model = ChatOpenAI()
+
+# Traces from all providers flow through Untrace
+```
+
+### Cost Control
+
+```yaml
+# Route only a sample of expensive requests
+- name: "Sample GPT-4"
+  condition:
+    model: "gpt-4"
+  destination: "langsmith"
+  sample_rate: 0.1  # Only 10%
+
+# But capture all errors
+- name: "All Errors"
+  condition:
+    error: true
+  destination: "langsmith"
+  sample_rate: 1.0  # 100%
+```
+
+## Framework Examples
+
+### Next.js
+```typescript
+// app/instrumentation.ts
+export async function register() {
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    const { init } = await import('@untrace/sdk');
+    init({ apiKey: process.env.UNTRACE_API_KEY });
+  }
+}
+```
+
+### FastAPI
+```python
+# main.py
+from fastapi import FastAPI
+from untrace import Untrace
+
+app = FastAPI()
+untrace = Untrace(api_key="utr_your_api_key")
+
+@app.on_event("startup")
+async def startup():
+    untrace.init()
+```
+
+### LangChain
+```python
+# Automatic instrumentation
+from untrace import init
+init(api_key="utr_your_api_key")
+
+# Your LangChain code - automatically traced
+from langchain.chat_models import ChatOpenAI
+from langchain.chains import ConversationChain
+
+llm = ChatOpenAI(model="gpt-4")
+chain = ConversationChain(llm=llm)
+```
+
+## Next Steps
+
+<CardGroup>
+  <Card
+    title="SDK Documentation"
+    icon="code"
+    href="/sdk"
+  >
+    Deep dive into SDK features and configuration
+  </Card>
+  <Card
+    title="Routing Rules"
+    icon="route"
+    href="/routing"
+  >
+    Learn advanced routing strategies
+  </Card>
+  <Card
+    title="Dashboard Guide"
+    icon="gauge"
+    href="/dashboard"
+  >
+    Master the Untrace dashboard
+  </Card>
+  <Card
+    title="Integrations"
+    icon="plug"
+    href="/integrations"
+  >
+    Connect all your observability platforms
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+### No traces appearing?
+- Check your API key is correct
+- Verify network connectivity to `api.untrace.dev`
+- Enable debug mode to see detailed logs
+- Check the dashboard for any error messages
+
+### High latency?
+- Untrace adds < 10ms overhead
+- Check your network latency to our servers
+- Consider using batch mode for high-volume applications
+
+### Need help?
+- 📧 Email: support@untrace.dev
+- 💬 Discord: [Join our community](https://discord.gg/untrace)
+- 📚 Docs: [Full documentation](https://docs.untrace.dev)

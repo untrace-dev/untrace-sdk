@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bun add:*)",
+      "Bash(bun run:*)",
+      "Bash(rm:*)",
+      "Bash(./bin/cli.js --help)",
+      "Bash(ls:*)",
+      "Bash(npm run build:*)",
+      "Bash(node:*)",
+      "Bash(cp:*)",
+      "Bash(bun:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(infisical run:*)",
+      "Bash(mkdir:*)",
+      "Bash(find:*)",
+      "Bash(USE_LOCAL_DB=true bun test packages/integ-test/src/events-requests.test.ts)",
+      "Bash(USE_LOCAL_DB=true bun test ./packages/integ-test/src/events-requests.test.ts)",
+      "Bash(USE_LOCAL_DB=true bun test src/events-requests.test.ts)",
+      "Bash(USE_LOCAL_DB=true bun test src/events-requests.test.ts -t \"should create an event when webhook receives a request\")"
+    ],
+    "deny": []
+  }
+}

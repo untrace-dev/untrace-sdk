@@ -1,0 +1,41 @@
+// See https://go.microsoft.com/fwlink/?LinkId=733558
+// for the documentation about the tasks.json format
+{
+  "tasks": [
+    {
+      "args": ["run", "build:debug"],
+      "command": "bun",
+      "group": "build",
+      "label": "build-vscode-extension",
+      "options": {
+        "cwd": "${workspaceFolder}/apps/vscode-extension"
+      },
+      "presentation": {
+        "close": true,
+        "panel": "new",
+        "reveal": "always"
+      },
+      "type": "shell"
+    },
+    {
+      "args": ["run", "dev:webview"],
+      "command": "bun",
+      "isBackground": true,
+      "label": "start-dev-server",
+      "options": {
+        "cwd": "${workspaceFolder}/apps/vscode-extension"
+      },
+      "presentation": {
+        "panel": "shared",
+        "reveal": "always"
+      },
+      "type": "shell"
+    },
+    {
+      "dependsOn": ["build-vscode-extension"],
+      "dependsOrder": "parallel",
+      "label": "prepare-extension"
+    }
+  ],
+  "version": "2.0.0"
+}

@@ -1,0 +1,30 @@
+{
+  "dependencies": {
+    "bun": "1.2.21",
+    "debug": "4.4.1",
+    "node-inspect-extracted": "3.2.0"
+  },
+  "devDependencies": {
+    "@types/bun": "1.2.21",
+    "@types/debug": "4.1.12",
+    "@types/vscode": "1.103.0",
+    "typescript": "5.9.2"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./destinations/console": "./src/destinations/console.ts",
+    "./destinations/rolling-file": "./src/destinations/rolling-file.ts",
+    "./destinations/stdout": "./src/destinations/stdout.ts",
+    "./destinations/vscode-output": "./src/destinations/vscode-output.ts"
+  },
+  "license": "MIT",
+  "name": "@untrace/logger",
+  "private": true,
+  "scripts": {
+    "clean": "git clean -xdf .turbo node_modules dist",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false"
+  },
+  "type": "module",
+  "version": "0.1.0"
+}

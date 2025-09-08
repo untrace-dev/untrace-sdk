@@ -1,0 +1,868 @@
+---
+title: SDK Reference
+description: "JavaScript/TypeScript SDK for LLM observability - instrument once, observe everywhere"
+---
+
+<img
+  className="block dark:hidden"
+  src="/images/sdk-light.png"
+  alt="Untrace SDK Light"
+/>
+<img
+  className="hidden dark:block"
+  src="/images/sdk-dark.png"
+  alt="Untrace SDK Dark"
+/>
+
+## Overview
+
+The Untrace SDK provides zero-latency LLM observability with automatic instrumentation for all major LLM providers. Built on OpenTelemetry standards, it captures comprehensive trace data and routes it to your chosen observability platforms.
+
+<CardGroup cols={2}>
+  <Card
+    title="Quick Start"
+    icon="rocket"
+    href="#quick-start"
+  >
+    Start tracing LLM calls in minutes
+  </Card>
+  <Card
+    title="Auto-instrumentation"
+    icon="magic"
+    href="#auto-instrumentation"
+  >
+    Automatic tracing for popular LLM libraries
+  </Card>
+  <Card
+    title="Type Safety"
+    icon="shield-check"
+    href="#typescript-support"
+  >
+    Full TypeScript support with type definitions
+  </Card>
+  <Card
+    title="Examples"
+    icon="code"
+    href="#examples"
+  >
+    Real-world examples and best practices
+  </Card>
+</CardGroup>
+
+## Installation
+
+Install the Untrace SDK using your preferred package manager:
+
+<CodeGroup>
+
+```bash npm
+npm install @untrace/sdk
+```
+
+```bash yarn
+yarn add @untrace/sdk
+```
+
+```bash pnpm
+pnpm add @untrace/sdk
+```
+
+```bash bun
+bun add @untrace/sdk
+```
+
+</CodeGroup>
+
+## Quick Start
+
+### Basic Setup
+
+```typescript
+import { init } from '@untrace/sdk';
+
+// Initialize the SDK
+const untrace = init({
+  apiKey: 'your-untrace-api-key',
+  serviceName: 'my-llm-app',
+  environment: 'production',
+});
+
+// Your LLM code is automatically instrumented!
+import OpenAI from 'openai';
+
+const openai = new OpenAI();
+const response = await openai.chat.completions.create({
+  model: 'gpt-3.5-turbo',
+  messages: [{ role: 'user', content: 'Hello!' }],
+});
+```
+
+### Manual Instrumentation
+
+```typescript
+// For providers loaded before SDK initialization
+import OpenAI from 'openai';
+import { init } from '@untrace/sdk';
+
+const openai = new OpenAI();
+const untrace = init({ apiKey: 'your-api-key' });
+
+// Manually instrument the client
+const instrumentedOpenAI = untrace.instrument('openai', openai);
+```
+
+## Configuration
+
+### SDK Options
+
+```typescript
+interface UntraceConfig {
+  // Required
+  apiKey: string;                    // Your Untrace API key
+
+  // Optional
+  serviceName?: string;              // Default: 'untrace-app'
+  environment?: string;              // Default: 'production'
+  version?: string;                  // Your app version
+  baseUrl?: string;                  // Custom ingestion endpoint
+
+  // Behavior
+  debug?: boolean;                   // Enable debug logging
+  disableAutoInstrumentation?: boolean; // Disable auto-instrumentation
+  captureBody?: boolean;             // Capture request/response bodies
+  captureErrors?: boolean;           // Capture and report errors
+
+  // Performance
+  samplingRate?: number;             // 0.0 to 1.0 (default: 1.0)
+  maxBatchSize?: number;             // Max spans per batch (default: 512)
+  exportIntervalMs?: number;         // Export interval (default: 5000ms)
+
+  // Providers
+  providers?: string[];              // Specific providers to instrument
+                                    // Use ['all'] to instrument everything
+
+  // Advanced
+  headers?: Record<string, string>;  // Custom headers for requests
+  resourceAttributes?: Attributes;   // Additional resource attributes
+  spanProcessors?: SpanProcessor[];  // Custom span processors
+}
+```
+
+### Environment Variables
+
+The SDK supports configuration via environment variables:
+
+```bash
+# Core settings
+UNTRACE_API_KEY=your-api-key
+UNTRACE_BASE_URL=https://api.untrace.dev
+UNTRACE_DEBUG=true
+
+# OpenTelemetry settings
+OTEL_SERVICE_NAME=my-service
+OTEL_RESOURCE_ATTRIBUTES=environment=production,version=1.0.0
+```
+
+## Auto-instrumentation
+
+### Supported Providers
+
+The SDK automatically instruments these LLM providers:
+
+#### AI/LLM Providers
+- ✅ **OpenAI** - GPT-4, GPT-3.5, Embeddings, DALL-E
+- ✅ **Anthropic** - Claude 3, Claude 2
+- ✅ **Google AI** - Gemini Pro, PaLM
+- ✅ **Mistral** - Large, Medium, Small models
+- ✅ **Cohere** - Command, Embed, Rerank
+- ✅ **AWS Bedrock** - All supported models
+- ✅ **Azure OpenAI** - Enterprise deployments
+- ✅ **Together.ai** - Open source models
+- ✅ **Replicate** - Model marketplace
+- ✅ **Hugging Face** - Inference API
+
+#### Framework Support
+- ✅ **LangChain** - Chains, agents, tools
+- ✅ **LlamaIndex** - Data frameworks
+- ✅ **Vercel AI SDK** - Edge-ready AI
+
+### How It Works
+
+```typescript
+// Before SDK initialization
+import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
+
+// Initialize SDK - all imports are automatically instrumented
+import { init } from '@untrace/sdk';
+init({ apiKey: 'your-api-key' });
+
+// Use providers normally - traces are captured automatically
+const openai = new OpenAI();
+const anthropic = new Anthropic();
+```
+
+## Decorators
+
+The SDK provides powerful decorators for clean instrumentation:
+
+### @trace
+Create spans for any method:
+
+```typescript
+import { trace } from '@untrace/sdk';
+
+class RAGService {
+  @trace({ name: 'retrieve-documents' })
+  async retrieve(query: string) {
+    // Retrieval logic
+  }
+
+  @trace({ name: 'generate-response' })
+  async generate(context: string, query: string) {
+    // Generation logic
+  }
+}
+```
+
+### @llmOperation
+Specialized decorator for LLM operations:
+
+```typescript
+import { llmOperation } from '@untrace/sdk';
+
+class AIService {
+  @llmOperation({
+    type: 'chat',
+    model: 'gpt-4',
+    provider: 'openai',
+  })
+  async chat(messages: Message[]) {
+    return await this.openai.chat.completions.create({
+      model: 'gpt-4',
+      messages,
+    });
+  }
+}
+```
+
+### @metric
+Record custom metrics:
+
+```typescript
+import { metric } from '@untrace/sdk';
+
+class EmbeddingService {
+  @metric({
+    name: 'embedding.generation.duration',
+    unit: 'ms'
+  })
+  async generateEmbedding(text: string) {
+    // Embedding logic
+  }
+}
+```
+
+## Manual Tracing
+
+### Creating Spans
+
+```typescript
+import { getTracer } from '@untrace/sdk';
+
+const tracer = getTracer();
+
+// Start a span
+const span = tracer.startLLMSpan('rag-pipeline', {
+  provider: 'custom',
+  model: 'custom-rag',
+  operation: 'retrieve-and-generate',
+});
+
+try {
+  // Set span attributes
+  span.setAttribute('documents.count', 5);
+  span.setAttribute('query.complexity', 'high');
+
+  // Your logic here
+  const result = await performRAG(query);
+
+  // Record token usage
+  span.setAttribute('llm.prompt_tokens', 150);
+  span.setAttribute('llm.completion_tokens', 500);
+  span.setAttribute('llm.total_tokens', 650);
+
+  span.end();
+  return result;
+} catch (error) {
+  span.recordException(error);
+  span.setStatus({ code: SpanStatusCode.ERROR });
+  span.end();
+  throw error;
+}
+```
+
+### Context Propagation
+
+```typescript
+import { context, trace } from '@untrace/sdk';
+
+// Parent operation
+async function processRequest(userId: string) {
+  return await trace.withSpan('process-request', async () => {
+    // Context is automatically propagated
+    await retrieveUserData(userId);
+    await generateResponse();
+  });
+}
+
+// Child operations automatically linked
+async function retrieveUserData(userId: string) {
+  // This span is a child of 'process-request'
+  return await trace.withSpan('retrieve-user', async () => {
+    // Implementation
+  });
+}
+```
+
+## TypeScript Support
+
+### Type-Safe Provider Instrumentation
+
+```typescript
+import { init, InstrumentedOpenAI } from '@untrace/sdk';
+import OpenAI from 'openai';
+
+const untrace = init({ apiKey: 'your-api-key' });
+
+// Type-safe instrumented client
+const openai: InstrumentedOpenAI = untrace.instrument('openai', new OpenAI());
+
+// Full type support maintained
+const completion = await openai.chat.completions.create({
+  model: 'gpt-4',
+  messages: [{ role: 'user', content: 'Hello' }],
+});
+```
+
+### Custom Span Types
+
+```typescript
+interface CustomAttributes {
+  'app.user_id': string;
+  'app.session_id': string;
+  'app.feature_flags': string[];
+}
+
+const span = tracer.startSpan<CustomAttributes>('custom-operation');
+span.setAttribute('app.user_id', 'user-123');
+span.setAttribute('app.session_id', 'session-456');
+span.setAttribute('app.feature_flags', ['new-ui', 'beta-feature']);
+```
+
+## Observability Features
+
+### Token Usage Tracking
+
+The SDK automatically captures token usage:
+
+```typescript
+// Automatic token tracking
+const response = await openai.chat.completions.create({
+  model: 'gpt-4',
+  messages: [{ role: 'user', content: 'Hello!' }],
+});
+
+// Captured automatically:
+// - llm.prompt_tokens
+// - llm.completion_tokens
+// - llm.total_tokens
+// - llm.estimated_cost
+```
+
+### Cost Calculation
+
+```typescript
+import { getCostCalculator } from '@untrace/sdk';
+
+const calculator = getCostCalculator();
+
+// Get cost for a specific model
+const cost = calculator.calculate({
+  model: 'gpt-4',
+  promptTokens: 150,
+  completionTokens: 500,
+});
+
+// Track custom costs
+span.setAttribute('llm.cost.prompt', cost.prompt);
+span.setAttribute('llm.cost.completion', cost.completion);
+span.setAttribute('llm.cost.total', cost.total);
+```
+
+### Error Tracking
+
+```typescript
+// Errors are automatically captured with context
+try {
+  await openai.chat.completions.create({
+    model: 'gpt-4',
+    messages: messages,
+  });
+} catch (error) {
+  // Automatically captured:
+  // - Error type and message
+  // - Stack trace
+  // - Request parameters
+  // - Rate limit information (if applicable)
+}
+```
+
+## Advanced Features
+
+### Workflow Tracking
+
+Track complex LLM workflows:
+
+```typescript
+import { startWorkflow, endWorkflow } from '@untrace/sdk';
+
+// Start a workflow
+const workflow = startWorkflow('customer-support-chat', {
+  userId: 'user-123',
+  sessionId: 'session-456',
+  metadata: { tier: 'premium' },
+});
+
+// All LLM calls are associated with this workflow
+const classification = await classifyIntent(userMessage);
+const response = await generateResponse(classification);
+const sentiment = await analyzeSentiment(response);
+
+// End workflow with summary
+endWorkflow(workflow, {
+  totalTokens: 1500,
+  totalCost: 0.045,
+  outcome: 'resolved',
+});
+```
+
+### Sampling Strategies
+
+Reduce costs with intelligent sampling:
+
+```typescript
+import { SamplingStrategy } from '@untrace/sdk';
+
+const untrace = init({
+  apiKey: 'your-api-key',
+  samplingStrategy: new SamplingStrategy({
+    // Sample 10% of successful requests
+    default: 0.1,
+    rules: [
+      // Always sample errors
+      { condition: { error: true }, rate: 1.0 },
+      // Always sample high-cost requests
+      { condition: { cost: { gt: 1.0 } }, rate: 1.0 },
+      // Sample 50% of GPT-4 requests
+      { condition: { model: 'gpt-4' }, rate: 0.5 },
+    ],
+  }),
+});
+```
+
+### PII Redaction
+
+Automatic PII detection and redaction:
+
+```typescript
+const untrace = init({
+  apiKey: 'your-api-key',
+  piiDetection: {
+    enabled: true,
+    patterns: [
+      'email',
+      'phone',
+      'ssn',
+      'credit-card',
+    ],
+    customPatterns: [
+      /API_KEY_[A-Za-z0-9]+/g,
+    ],
+    redactionMethod: 'hash', // or 'mask'
+  },
+});
+```
+
+## Framework Examples
+
+### Next.js App Router
+
+```typescript
+// app/instrumentation.ts
+export async function register() {
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    const { init } = await import('@untrace/sdk');
+
+    init({
+      apiKey: process.env.UNTRACE_API_KEY!,
+      serviceName: 'my-nextjs-app',
+      environment: process.env.NODE_ENV,
+    });
+  }
+}
+```
+
+### Express.js
+
+```typescript
+// server.ts
+import express from 'express';
+import { init } from '@untrace/sdk';
+
+// Initialize before other imports
+init({
+  apiKey: process.env.UNTRACE_API_KEY!,
+  serviceName: 'my-api',
+});
+
+import OpenAI from 'openai';
+
+const app = express();
+const openai = new OpenAI();
+
+app.post('/chat', async (req, res) => {
+  const response = await openai.chat.completions.create({
+    model: 'gpt-3.5-turbo',
+    messages: req.body.messages,
+  });
+
+  res.json(response);
+});
+```
+
+### LangChain Integration
+
+```typescript
+import { init } from '@untrace/sdk';
+import { ChatOpenAI } from '@langchain/openai';
+import { ConversationChain } from 'langchain/chains';
+
+init({ apiKey: 'your-api-key' });
+
+// LangChain is automatically instrumented
+const model = new ChatOpenAI({
+  modelName: 'gpt-4',
+  temperature: 0,
+});
+
+const chain = new ConversationChain({ llm: model });
+
+// Traces capture the entire chain execution
+const response = await chain.invoke({
+  input: 'What is the meaning of life?',
+});
+```
+
+### LlamaIndex Integration
+
+```typescript
+import { init } from '@untrace/sdk';
+import {
+  Document,
+  VectorStoreIndex,
+  OpenAI,
+} from 'llamaindex';
+
+init({ apiKey: 'your-api-key' });
+
+// Automatic instrumentation
+const documents = [
+  new Document({ text: 'Your content here' }),
+];
+
+const index = await VectorStoreIndex.fromDocuments(documents);
+const queryEngine = index.asQueryEngine();
+
+// Full RAG pipeline is traced
+const response = await queryEngine.query('Your question');
+```
+
+## Metrics and Monitoring
+
+### Custom Metrics
+
+```typescript
+import { getMetrics } from '@untrace/sdk';
+
+const metrics = getMetrics();
+
+// Record custom metrics
+metrics.recordHistogram('embedding.dimension', 1536);
+metrics.recordCounter('cache.hit', 1, { model: 'text-embedding-ada-002' });
+metrics.recordGauge('queue.depth', 42);
+
+// LLM-specific metrics
+metrics.recordTokenUsage({
+  promptTokens: 150,
+  completionTokens: 50,
+  totalTokens: 200,
+  model: 'gpt-3.5-turbo',
+  provider: 'openai',
+});
+```
+
+### Performance Monitoring
+
+```typescript
+import { startTimer } from '@untrace/sdk';
+
+const timer = startTimer();
+
+// Perform operation
+const result = await performOperation();
+
+// Record duration
+timer.end('operation.duration', {
+  operation: 'embedding-search',
+  success: true,
+});
+```
+
+## Best Practices
+
+### 1. Initialize Early
+
+```typescript
+// Initialize as early as possible
+import { init } from '@untrace/sdk';
+
+init({ apiKey: process.env.UNTRACE_API_KEY! });
+
+// Then import LLM libraries
+import OpenAI from 'openai';
+```
+
+### 2. Use Semantic Attributes
+
+```typescript
+span.setAttribute('user.id', userId);
+span.setAttribute('user.subscription_tier', 'premium');
+span.setAttribute('feature.name', 'advanced-search');
+span.setAttribute('feature.version', '2.0');
+```
+
+### 3. Handle Sensitive Data
+
+```typescript
+// Don't log sensitive information
+span.setAttribute('user.email_hash', hashEmail(email));
+// Not: span.setAttribute('user.email', email);
+
+// Use PII redaction
+init({
+  apiKey: 'your-api-key',
+  piiDetection: { enabled: true },
+});
+```
+
+### 4. Implement Error Boundaries
+
+```typescript
+async function safeLLMCall<T>(
+  operation: () => Promise<T>,
+  spanName: string,
+): Promise<T> {
+  const span = tracer.startSpan(spanName);
+
+  try {
+    const result = await operation();
+    span.setStatus({ code: SpanStatusCode.OK });
+    return result;
+  } catch (error) {
+    span.recordException(error);
+    span.setStatus({
+      code: SpanStatusCode.ERROR,
+      message: error.message,
+    });
+    throw error;
+  } finally {
+    span.end();
+  }
+}
+```
+
+## Troubleshooting
+
+### Common Issues
+
+<AccordionGroup>
+  <Accordion title="No traces appearing">
+    ```typescript
+    // Enable debug mode
+    init({
+      apiKey: 'your-api-key',
+      debug: true,
+    });
+
+    // Check console for errors
+    ```
+  </Accordion>
+  <Accordion title="Missing auto-instrumentation">
+    - Ensure SDK is initialized before importing LLM libraries
+    - Check that the provider is supported
+    - Try manual instrumentation as a fallback
+  </Accordion>
+  <Accordion title="High latency">
+    ```typescript
+    // Adjust batching settings
+    init({
+      apiKey: 'your-api-key',
+      maxBatchSize: 100,
+      exportIntervalMs: 10000, // 10 seconds
+    });
+    ```
+  </Accordion>
+  <Accordion title="Memory usage">
+    ```typescript
+    // Implement sampling
+    init({
+      apiKey: 'your-api-key',
+      samplingRate: 0.1, // Sample 10%
+    });
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Debug Mode
+
+Enable comprehensive debugging:
+
+```typescript
+const untrace = init({
+  apiKey: 'your-api-key',
+  debug: true,
+  logLevel: 'verbose',
+});
+
+// Get debug information
+const debugInfo = untrace.getDebugInfo();
+console.log('SDK Version:', debugInfo.version);
+console.log('Instrumented Providers:', debugInfo.providers);
+console.log('Active Spans:', debugInfo.activeSpans);
+```
+
+## API Reference
+
+### Core Functions
+
+```typescript
+// Initialize SDK
+function init(config: UntraceConfig): UntraceSDK;
+
+// Get tracer instance
+function getTracer(name?: string): Tracer;
+
+// Get metrics instance
+function getMetrics(): Metrics;
+
+// Context management
+function withSpan<T>(name: string, fn: () => T): T;
+
+// Workflow management
+function startWorkflow(name: string, metadata?: any): Workflow;
+function endWorkflow(workflow: Workflow, summary?: any): void;
+```
+
+### Instrumentation
+
+```typescript
+// Manual instrumentation
+sdk.instrument(provider: string, client: any): any;
+
+// Check if provider is instrumented
+sdk.isInstrumented(provider: string): boolean;
+
+// Get instrumentation info
+sdk.getInstrumentation(): InstrumentationInfo[];
+```
+
+### Utilities
+
+```typescript
+// Cost calculation
+getCostCalculator(): CostCalculator;
+
+// PII detection
+getPIIDetector(): PIIDetector;
+
+// Sampling
+getSampler(): Sampler;
+```
+
+## Migration Guide
+
+### From OpenTelemetry
+
+```typescript
+// Before: Raw OpenTelemetry
+import { trace } from '@opentelemetry/api';
+const tracer = trace.getTracer('my-app');
+
+// After: Untrace SDK
+import { getTracer } from '@untrace/sdk';
+const tracer = getTracer();
+```
+
+### From Other Observability Tools
+
+```typescript
+// Before: Platform-specific SDKs
+import { LangSmithClient } from 'langsmith';
+const client = new LangSmithClient();
+
+// After: Untrace SDK (routes to LangSmith)
+import { init } from '@untrace/sdk';
+init({ apiKey: 'your-api-key' });
+// Traces automatically sent to configured platforms
+```
+
+## Support
+
+- **Documentation**: [https://docs.untrace.dev](https://docs.untrace.dev)
+- **GitHub Issues**: [https://github.com/untrace-dev/untrace/issues](https://github.com/untrace-dev/untrace/issues)
+- **Discord Community**: [Join our Discord](https://discord.gg/untrace)
+- **Email Support**: support@untrace.dev
+
+## Next Steps
+
+<CardGroup>
+  <Card
+    title="Dashboard Guide"
+    icon="gauge"
+    href="/dashboard"
+  >
+    Learn to use the Untrace dashboard
+  </Card>
+  <Card
+    title="Routing Rules"
+    icon="route"
+    href="/routing"
+  >
+    Configure intelligent trace routing
+  </Card>
+  <Card
+    title="Provider Setup"
+    icon="plug"
+    href="/providers"
+  >
+    Connect to LLM providers
+  </Card>
+  <Card
+    title="Examples"
+    icon="code"
+    href="https://github.com/untrace-dev/examples"
+  >
+    Browse example implementations
+  </Card>
+</CardGroup>

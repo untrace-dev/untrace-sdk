@@ -1,0 +1,683 @@
+---
+title: Security
+description: "Security features and best practices for protecting your LLM trace data"
+---
+
+<img
+  className="block dark:hidden"
+  src="/images/security-light.png"
+  alt="Untrace Security Light"
+/>
+<img
+  className="hidden dark:block"
+  src="/images/security-dark.png"
+  alt="Untrace Security Dark"
+/>
+
+## Overview
+
+Security and privacy are paramount when handling LLM traces that may contain sensitive data. Untrace provides multiple layers of security to protect your AI application data, ensure compliance, and maintain user privacy.
+
+<CardGroup cols={2}>
+  <Card
+    title="PII Protection"
+    icon="user-shield"
+    href="#pii-protection"
+  >
+    Automatic detection and redaction of sensitive data
+  </Card>
+  <Card
+    title="Data Encryption"
+    icon="lock"
+    href="#data-encryption"
+  >
+    End-to-end encryption for traces in transit and at rest
+  </Card>
+  <Card
+    title="Access Control"
+    icon="key"
+    href="#access-control"
+  >
+    Fine-grained permissions and API key management
+  </Card>
+  <Card
+    title="Compliance"
+    icon="certificate"
+    href="#compliance"
+  >
+    GDPR, SOC2, HIPAA compliant infrastructure
+  </Card>
+</CardGroup>
+
+## PII Protection
+
+### Automatic PII Detection
+
+Untrace automatically scans LLM traces for personally identifiable information:
+
+```typescript
+// PII patterns detected by default
+const defaultPatterns = {
+  email: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/,
+  phone: /\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/,
+  ssn: /\b\d{3}-\d{2}-\d{4}\b/,
+  creditCard: /\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/,
+  ipAddress: /\b(?:\d{1,3}\.){3}\d{1,3}\b/,
+};
+```
+
+### Redaction Methods
+
+Choose how sensitive data is handled:
+
+<Tabs>
+  <Tab title="Hash">
+    ```typescript
+    // Original: "Contact john.doe@example.com"
+    // Redacted: "Contact [EMAIL_HASH:a1b2c3d4]"
+    
+    init({
+      piiDetection: {
+        enabled: true,
+        redactionMethod: 'hash'
+      }
+    });
+    ```
+  </Tab>
+  <Tab title="Mask">
+    ```typescript
+    // Original: "SSN: 123-45-6789"
+    // Redacted: "SSN: XXX-XX-XXXX"
+    
+    init({
+      piiDetection: {
+        enabled: true,
+        redactionMethod: 'mask'
+      }
+    });
+    ```
+  </Tab>
+  <Tab title="Remove">
+    ```typescript
+    // Original: "Call me at 555-123-4567"
+    // Redacted: "Call me at [REDACTED]"
+    
+    init({
+      piiDetection: {
+        enabled: true,
+        redactionMethod: 'remove'
+      }
+    });
+    ```
+  </Tab>
+</Tabs>
+
+### Custom PII Patterns
+
+Define your own sensitive data patterns:
+
+```typescript
+const untrace = init({
+  apiKey: 'your-api-key',
+  piiDetection: {
+    enabled: true,
+    customPatterns: [
+      // API Keys
+      { name: 'api_key', pattern: /sk_[a-zA-Z0-9]{32}/ },
+      // Internal IDs
+      { name: 'user_id', pattern: /user_[0-9]{8}/ },
+      // Custom tokens
+      { name: 'auth_token', pattern: /Bearer [A-Za-z0-9\-._~+\/]+=*/ }
+    ]
+  }
+});
+```
+
+### Allowlisting
+
+Specify patterns that should never be redacted:
+
+```typescript
+init({
+  piiDetection: {
+    enabled: true,
+    allowlist: [
+      // Public email domains
+      /@company\.com$/,
+      // Test data
+      /test@example\.com/,
+      // Documentation examples
+      /lorem\.ipsum/
+    ]
+  }
+});
+```
+
+## Data Encryption
+
+### Encryption in Transit
+
+All trace data is encrypted during transmission:
+
+- **TLS 1.3**: Latest encryption standards
+- **Certificate Pinning**: Prevent MITM attacks
+- **Perfect Forward Secrecy**: Protect past sessions
+- **HSTS**: Enforce HTTPS connections
+
+```typescript
+// SDK automatically uses secure connections
+const untrace = init({
+  apiKey: 'your-api-key',
+  baseUrl: 'https://api.untrace.dev', // HTTPS enforced
+  tlsConfig: {
+    minVersion: 'TLSv1.3',
+    cipherSuites: ['TLS_AES_128_GCM_SHA256']
+  }
+});
+```
+
+### Encryption at Rest
+
+Trace data is encrypted when stored:
+
+- **AES-256-GCM**: Military-grade encryption
+- **Key Rotation**: Automatic key management
+- **HSM Storage**: Hardware security modules for keys
+- **Encrypted Backups**: Secure disaster recovery
+
+### Field-Level Encryption
+
+Encrypt specific sensitive fields:
+
+```typescript
+init({
+  fieldEncryption: {
+    enabled: true,
+    fields: [
+      'user.email',
+      'metadata.api_key',
+      'context.session_token'
+    ],
+    algorithm: 'AES-256-GCM'
+  }
+});
+```
+
+## Access Control
+
+### API Key Management
+
+Secure API key practices:
+
+```typescript
+// Generate scoped API keys
+const apiKey = await untrace.createApiKey({
+  name: 'production-ingest',
+  permissions: ['trace:write'],
+  expiresIn: '90d',
+  allowedIPs: ['10.0.0.0/8'],
+  rateLimit: {
+    requests: 10000,
+    window: '1h'
+  }
+});
+```
+
+### Key Rotation
+
+Implement regular key rotation:
+
+```bash
+# Rotate API keys via CLI
+untrace keys rotate --key-id key_123 --grace-period 7d
+
+# Or programmatically
+await untrace.rotateApiKey('key_123', {
+  gracePeriod: '7d',
+  notifyEmail: 'security@company.com'
+});
+```
+
+### Role-Based Access Control
+
+Configure granular permissions:
+
+| Role | View Traces | Configure Routing | Manage Keys | Access PII |
+|------|-------------|-------------------|-------------|------------|
+| Admin | ✅ | ✅ | ✅ | ✅ |
+| Developer | ✅ | ✅ | ❌ | ❌ |
+| Analyst | ✅ | ❌ | ❌ | ❌ |
+| Viewer | ✅ (redacted) | ❌ | ❌ | ❌ |
+
+### OAuth Integration
+
+Support for enterprise SSO:
+
+```typescript
+// Configure OAuth providers
+const untrace = init({
+  auth: {
+    providers: ['google', 'github', 'okta'],
+    oauth: {
+      clientId: process.env.OAUTH_CLIENT_ID,
+      redirectUri: 'https://app.untrace.dev/auth/callback',
+      scopes: ['read:traces', 'write:config']
+    }
+  }
+});
+```
+
+## Network Security
+
+### IP Allowlisting
+
+Restrict access by IP address:
+
+```yaml
+# untrace.config.yaml
+security:
+  allowedIPs:
+    - 10.0.0.0/8      # Internal network
+    - 172.16.0.0/12   # Private subnet
+    - 52.44.0.0/16    # AWS region
+  
+  # Per-environment configuration
+  production:
+    allowedIPs:
+      - 10.1.0.0/16   # Production VPC
+  
+  development:
+    allowedIPs:
+      - 0.0.0.0/0     # Allow all (dev only!)
+```
+
+### VPC Peering
+
+Connect securely via private networks:
+
+```typescript
+// Configure VPC endpoint
+const untrace = init({
+  apiKey: 'your-api-key',
+  endpoint: {
+    type: 'vpc',
+    vpcEndpointId: 'vpce-1234567890abcdef0',
+    privateDns: true
+  }
+});
+```
+
+### Rate Limiting
+
+Protect against abuse:
+
+```typescript
+// SDK-level rate limiting
+init({
+  rateLimit: {
+    enabled: true,
+    maxRequests: 1000,
+    windowMs: 60000, // 1 minute
+    keyGenerator: (req) => req.apiKey
+  }
+});
+```
+
+## Data Privacy
+
+### Data Residency
+
+Control where your data is stored:
+
+```typescript
+const untrace = init({
+  apiKey: 'your-api-key',
+  dataResidency: {
+    region: 'eu-west-1', // EU data residency
+    restrictCrossRegion: true
+  }
+});
+```
+
+Available regions:
+- **US**: us-east-1, us-west-2
+- **EU**: eu-west-1, eu-central-1
+- **APAC**: ap-southeast-1, ap-northeast-1
+
+### Data Retention
+
+Configure retention policies:
+
+```yaml
+retention:
+  traces:
+    default: 30d
+    byEnvironment:
+      production: 90d
+      development: 7d
+  
+  # Automatic deletion rules
+  rules:
+    - condition: "contains_pii"
+      retention: 24h
+    - condition: "error_traces"
+      retention: 60d
+```
+
+### Right to Erasure
+
+GDPR-compliant data deletion:
+
+```typescript
+// Delete user data
+await untrace.deleteUserData({
+  userId: 'user_123',
+  includeTraces: true,
+  includeMetadata: true,
+  confirmation: 'DELETE-USER-123'
+});
+
+// Bulk deletion
+await untrace.bulkDelete({
+  filter: {
+    dateRange: { start: '2024-01-01', end: '2024-02-01' },
+    tags: ['test-data']
+  }
+});
+```
+
+## Compliance
+
+### GDPR Compliance
+
+Untrace helps you meet GDPR requirements:
+
+<AccordionGroup>
+  <Accordion title="Data Minimization">
+    - Automatic PII redaction
+    - Configurable data collection
+    - Field-level exclusion
+    - Sampling strategies
+  </Accordion>
+  <Accordion title="Purpose Limitation">
+    - Explicit data usage policies
+    - Purpose-based retention
+    - Access controls by purpose
+    - Audit trails
+  </Accordion>
+  <Accordion title="Data Subject Rights">
+    - Right to access (data export)
+    - Right to rectification
+    - Right to erasure
+    - Right to data portability
+  </Accordion>
+  <Accordion title="Security Measures">
+    - Encryption at rest and in transit
+    - Access controls
+    - Regular security audits
+    - Breach notification
+  </Accordion>
+</AccordionGroup>
+
+### SOC2 Compliance
+
+Our SOC2 Type II certification covers:
+
+- **Security**: Encryption, access controls, monitoring
+- **Availability**: 99.9% uptime SLA, redundancy
+- **Processing Integrity**: Data validation, error handling
+- **Confidentiality**: Data classification, encryption
+- **Privacy**: PII handling, consent management
+
+### HIPAA Compliance
+
+For healthcare applications:
+
+```typescript
+// Enable HIPAA-compliant mode
+const untrace = init({
+  compliance: {
+    hipaa: {
+      enabled: true,
+      baaRequired: true,
+      phiRedaction: 'aggressive',
+      auditLevel: 'detailed'
+    }
+  }
+});
+```
+
+Features:
+- Business Associate Agreement (BAA)
+- PHI detection and redaction
+- Audit logging
+- Access controls
+- Encryption standards
+
+## Security Monitoring
+
+### Audit Logging
+
+Comprehensive security audit trail:
+
+```json
+{
+  "timestamp": "2024-01-15T10:30:00Z",
+  "event": "api_key.accessed",
+  "actor": {
+    "id": "user_123",
+    "ip": "10.0.0.50",
+    "userAgent": "untrace-sdk/1.0.0"
+  },
+  "resource": {
+    "type": "trace",
+    "id": "trace_abc123"
+  },
+  "outcome": "success",
+  "metadata": {
+    "dataAccessed": ["model", "tokens"],
+    "piiRedacted": true
+  }
+}
+```
+
+### Anomaly Detection
+
+Automatic detection of suspicious activity:
+
+```typescript
+// Configure anomaly detection
+init({
+  security: {
+    anomalyDetection: {
+      enabled: true,
+      rules: [
+        { type: 'unusual_volume', threshold: 10000 },
+        { type: 'new_ip_location', notify: true },
+        { type: 'api_key_abuse', action: 'block' }
+      ]
+    }
+  }
+});
+```
+
+### Security Alerts
+
+Real-time security notifications:
+
+<Tabs>
+  <Tab title="Email Alerts">
+    - Failed authentication attempts
+    - New IP addresses
+    - API key usage anomalies
+    - Data export requests
+  </Tab>
+  <Tab title="Webhook Alerts">
+    ```json
+    {
+      "alert": "suspicious_activity",
+      "severity": "high",
+      "details": {
+        "type": "unusual_data_access",
+        "apiKey": "key_***123",
+        "volume": "10x normal"
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="SIEM Integration">
+    - Splunk connector
+    - Datadog integration
+    - CloudWatch logs
+    - Custom SIEM support
+  </Tab>
+</Tabs>
+
+## Best Practices
+
+### Development Security
+
+1. **Use separate API keys for each environment**
+   ```bash
+   # Production
+   UNTRACE_API_KEY=utr_prod_xxx
+   
+   # Staging
+   UNTRACE_API_KEY=utr_stage_xxx
+   
+   # Development
+   UNTRACE_API_KEY=utr_dev_xxx
+   ```
+
+2. **Never commit credentials**
+   ```gitignore
+   # .gitignore
+   .env
+   .env.local
+   *.key
+   credentials/
+   ```
+
+3. **Use secret management**
+   ```typescript
+   // Use secret manager
+   const apiKey = await secretManager.getSecret('untrace-api-key');
+   init({ apiKey });
+   ```
+
+### Production Security
+
+1. **Enable all security features**
+   ```typescript
+   init({
+     apiKey: process.env.UNTRACE_API_KEY,
+     piiDetection: { enabled: true },
+     encryption: { fieldLevel: true },
+     audit: { level: 'detailed' }
+   });
+   ```
+
+2. **Regular security reviews**
+   - Monthly API key rotation
+   - Quarterly access reviews
+   - Annual security audits
+   - Penetration testing
+
+3. **Incident response plan**
+   - Security team contacts
+   - Escalation procedures
+   - Communication templates
+   - Recovery procedures
+
+### Data Handling
+
+1. **Minimize sensitive data in traces**
+   ```typescript
+   // Bad: Including full user object
+   span.setAttribute('user', userObject);
+   
+   // Good: Only necessary fields
+   span.setAttribute('user.id', user.id);
+   span.setAttribute('user.tier', user.subscriptionTier);
+   ```
+
+2. **Use structured logging**
+   ```typescript
+   // Structured data is easier to redact
+   span.setAttributes({
+     'request.path': '/api/chat',
+     'request.method': 'POST',
+     'user.id': userId,
+     // PII fields will be auto-redacted
+   });
+   ```
+
+3. **Implement data classification**
+   ```typescript
+   span.setAttribute('data.classification', 'internal');
+   span.setAttribute('data.sensitivity', 'high');
+   span.setAttribute('data.retention', '30d');
+   ```
+
+## Security Checklist
+
+Use this checklist to ensure your Untrace implementation is secure:
+
+- [ ] **PII detection enabled** in production
+- [ ] **API keys stored securely** (environment variables, secret manager)
+- [ ] **Separate API keys** for each environment
+- [ ] **IP allowlisting configured** for production
+- [ ] **Field-level encryption** for sensitive data
+- [ ] **Audit logging enabled** for compliance
+- [ ] **Data retention policies** configured
+- [ ] **Access controls** properly set up
+- [ ] **Regular key rotation** scheduled
+- [ ] **Security alerts** configured
+- [ ] **Incident response plan** documented
+- [ ] **Compliance requirements** identified and met
+
+## Vulnerability Disclosure
+
+Found a security issue? Please report it responsibly:
+
+1. **Email**: security@untrace.dev
+2. **PGP Key**: Available on our website
+3. **Response Time**: Within 24 hours
+4. **Bug Bounty**: Available for critical issues
+
+<Note>
+Please do not disclose security vulnerabilities publicly until we've had a chance to address them.
+</Note>
+
+## Resources
+
+<CardGroup>
+  <Card
+    title="Security Updates"
+    icon="bell"
+    href="https://status.untrace.dev"
+  >
+    Subscribe to security advisories
+  </Card>
+  <Card
+    title="Security Whitepaper"
+    icon="file-shield"
+    href="/security-whitepaper.pdf"
+  >
+    Detailed security architecture
+  </Card>
+  <Card
+    title="Compliance Docs"
+    icon="certificate"
+    href="/compliance"
+  >
+    SOC2, GDPR, HIPAA documentation
+  </Card>
+  <Card
+    title="Privacy Policy"
+    icon="user-shield"
+    href="/privacy"
+  >
+    How we handle your data
+  </Card>
+</CardGroup>

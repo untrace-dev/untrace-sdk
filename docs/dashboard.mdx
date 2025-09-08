@@ -1,0 +1,544 @@
+---
+title: Dashboard
+description: "Monitor, route, and analyze your LLM traces in real-time with the Untrace dashboard"
+---
+
+<img
+  className="block dark:hidden"
+  src="/images/dashboard-light.png"
+  alt="Untrace Dashboard Light"
+/>
+<img
+  className="hidden dark:block"
+  src="/images/dashboard-dark.png"
+  alt="Untrace Dashboard Dark"
+/>
+
+## Overview
+
+The Untrace Dashboard provides a powerful web interface for monitoring your LLM traces, configuring routing rules, analyzing performance metrics, and managing your observability integrations. Access it at [https://app.untrace.dev](https://app.untrace.dev).
+
+<CardGroup cols={2}>
+  <Card
+    title="Real-time Monitoring"
+    icon="chart-line"
+    href="#real-time-monitoring"
+  >
+    View LLM traces as they flow through your system
+  </Card>
+  <Card
+    title="Routing Configuration"
+    icon="route"
+    href="#routing-configuration"
+  >
+    Set up intelligent routing rules for your traces
+  </Card>
+  <Card
+    title="Analytics"
+    icon="chart-bar"
+    href="#analytics"
+  >
+    Analyze costs, performance, and usage patterns
+  </Card>
+  <Card
+    title="Integrations"
+    icon="plug"
+    href="#integrations"
+  >
+    Configure connections to observability platforms
+  </Card>
+</CardGroup>
+
+## Getting Started
+
+### Accessing the Dashboard
+
+1. Navigate to [https://app.untrace.dev](https://app.untrace.dev)
+2. Sign in with your Untrace account
+3. You'll land on the overview page showing your LLM trace activity
+
+### Dashboard Layout
+
+The dashboard is organized into several key sections:
+
+- **Navigation Sidebar**: Quick access to all dashboard features
+- **Main Content Area**: Displays your selected view (traces, analytics, settings, etc.)
+- **Activity Feed**: Real-time trace activity stream
+- **Status Bar**: Connection status and platform health indicators
+
+## Real-time Monitoring
+
+### Live Trace Feed
+
+Monitor LLM traces as they flow through Untrace:
+
+<Tabs>
+  <Tab title="List View">
+    View traces in a chronological list with key information:
+    - Timestamp
+    - Model (GPT-4, Claude, etc.)
+    - Provider (OpenAI, Anthropic, etc.)
+    - Token usage
+    - Cost
+    - Latency
+    - Routing destinations
+    - Status (success/error)
+  </Tab>
+  <Tab title="Detail View">
+    Click any trace to see detailed information:
+    - Full prompt and completion
+    - Token breakdown (prompt/completion)
+    - Cost calculation
+    - Latency metrics
+    - Routing decisions
+    - Platform responses
+    - Error details (if any)
+  </Tab>
+</Tabs>
+
+### Filtering and Search
+
+Filter the trace feed to focus on what matters:
+
+```javascript
+// Example filters
+{
+  model: "gpt-4",
+  provider: "openai",
+  status: "success",
+  costRange: { min: 0.01, max: 0.10 },
+  timeRange: "last-hour"
+}
+```
+
+Available filter options:
+- **Model**: Filter by specific models (GPT-4, Claude-3, etc.)
+- **Provider**: OpenAI, Anthropic, Google, etc.
+- **Status**: Success, Failed, Rate Limited
+- **Cost Range**: Filter by token cost
+- **Latency**: Response time thresholds
+- **Destinations**: Filter by routing destinations
+- **Time Range**: Last hour, 24 hours, 7 days, custom range
+- **Tags**: Custom tags and metadata
+
+## Routing Configuration
+
+### Creating Routing Rules
+
+Configure how traces are routed to different platforms:
+
+<Steps>
+  <Step title="Create Rule">
+    Click **New Routing Rule** and configure:
+    - Rule name and description
+    - Matching conditions
+    - Destination platforms
+    - Priority order
+  </Step>
+  <Step title="Define Conditions">
+    Set up matching conditions:
+    - Model type (GPT-4, Claude, etc.)
+    - Cost thresholds
+    - Error conditions
+    - Custom metadata
+    - Environment tags
+  </Step>
+  <Step title="Select Destinations">
+    Choose where to send matching traces:
+    - Primary destination
+    - Fallback destinations
+    - Multi-destination routing
+    - Sampling rates
+  </Step>
+  <Step title="Test Rule">
+    Test your routing rule:
+    - Send test traces
+    - Verify routing behavior
+    - Check destination delivery
+  </Step>
+</Steps>
+
+### Routing Examples
+
+Common routing patterns:
+
+<AccordionGroup>
+  <Accordion title="Route by Model">
+    ```yaml
+    name: "Route GPT-4 to LangSmith"
+    conditions:
+      model: "gpt-4*"
+    destinations:
+      - platform: "langsmith"
+        sample_rate: 1.0
+    ```
+  </Accordion>
+  <Accordion title="Cost-based Routing">
+    ```yaml
+    name: "High-cost trace analysis"
+    conditions:
+      cost: "> 0.10"
+    destinations:
+      - platform: "langfuse"
+        tags: ["high-cost", "analyze"]
+    ```
+  </Accordion>
+  <Accordion title="Error Routing">
+    ```yaml
+    name: "Failed request debugging"
+    conditions:
+      status: "error"
+    destinations:
+      - platform: "keywords-ai"
+      - platform: "custom-webhook"
+        url: "https://api.yourapp.com/errors"
+    ```
+  </Accordion>
+  <Accordion title="A/B Testing">
+    ```yaml
+    name: "Platform comparison"
+    conditions:
+      model: "claude-3-opus"
+    destinations:
+      - platform: "langsmith"
+        sample_rate: 0.5
+      - platform: "langfuse"
+        sample_rate: 0.5
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Analytics
+
+### Overview Metrics
+
+View key metrics at a glance:
+
+- **Total Traces**: Daily, weekly, monthly counts
+- **Token Usage**: Total tokens processed
+- **Total Cost**: Aggregate costs across all models
+- **Average Latency**: P50, P95, P99 response times
+- **Error Rate**: Failed requests and error types
+- **Model Distribution**: Usage by model type
+
+### Cost Analysis
+
+Deep dive into your LLM costs:
+
+<Tabs>
+  <Tab title="By Model">
+    - Cost breakdown by model
+    - Token usage per model
+    - Average cost per request
+    - Cost trends over time
+  </Tab>
+  <Tab title="By Provider">
+    - Provider cost comparison
+    - Usage distribution
+    - Rate limit utilization
+    - Provider reliability metrics
+  </Tab>
+  <Tab title="By Application">
+    - Cost per application/service
+    - Department allocation
+    - Project-based tracking
+    - Budget monitoring
+  </Tab>
+</Tabs>
+
+### Performance Metrics
+
+Monitor LLM performance:
+
+- **Latency Distribution**: Response time histograms
+- **Token/Second**: Throughput metrics
+- **Queue Depth**: Pending requests
+- **Error Analysis**: Error types and frequencies
+- **Rate Limit Tracking**: Provider limit utilization
+
+### Custom Reports
+
+Generate custom analytics reports:
+
+1. Select metrics to include
+2. Choose aggregation period
+3. Apply filters
+4. Export as CSV or PDF
+5. Schedule automated reports
+
+## Integrations
+
+### Managing Platform Connections
+
+Configure connections to observability platforms:
+
+<Steps>
+  <Step title="Add Integration">
+    Click **New Integration** and select platform:
+    - LangSmith
+    - Langfuse
+    - Keywords.ai
+    - Helicone
+    - Custom webhook
+  </Step>
+  <Step title="Configure Authentication">
+    Provide platform credentials:
+    - API keys
+    - OAuth tokens
+    - Webhook URLs
+    - Custom headers
+  </Step>
+  <Step title="Set Defaults">
+    Configure default settings:
+    - Default tags
+    - Metadata mapping
+    - Retry policies
+    - Timeout settings
+  </Step>
+  <Step title="Test Connection">
+    Verify the integration:
+    - Send test trace
+    - Check delivery status
+    - Verify data format
+  </Step>
+</Steps>
+
+### Platform-Specific Settings
+
+Configure platform-specific features:
+
+#### LangSmith
+- Project mapping
+- Environment tags
+- Custom metadata fields
+- Feedback integration
+
+#### Langfuse
+- Session tracking
+- User identification
+- Score mappings
+- Public link generation
+
+#### Keywords.ai
+- Cost tracking settings
+- Alert thresholds
+- Custom dashboards
+- API quota management
+
+#### Custom Webhooks
+- Payload transformation
+- Authentication headers
+- Retry configuration
+- Response validation
+
+## Team Management
+
+### Access Control
+
+Manage team access and permissions:
+
+<Table>
+  <TableHeader>
+    <TableRow>
+      <TableHead>Role</TableHead>
+      <TableHead>View Traces</TableHead>
+      <TableHead>Configure Routing</TableHead>
+      <TableHead>Manage Integrations</TableHead>
+      <TableHead>Billing</TableHead>
+    </TableRow>
+  </TableHeader>
+  <TableBody>
+    <TableRow>
+      <TableCell>Owner</TableCell>
+      <TableCell>✅</TableCell>
+      <TableCell>✅</TableCell>
+      <TableCell>✅</TableCell>
+      <TableCell>✅</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>Admin</TableCell>
+      <TableCell>✅</TableCell>
+      <TableCell>✅</TableCell>
+      <TableCell>✅</TableCell>
+      <TableCell>❌</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>Developer</TableCell>
+      <TableCell>✅</TableCell>
+      <TableCell>✅</TableCell>
+      <TableCell>❌</TableCell>
+      <TableCell>❌</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>Viewer</TableCell>
+      <TableCell>✅</TableCell>
+      <TableCell>❌</TableCell>
+      <TableCell>❌</TableCell>
+      <TableCell>❌</TableCell>
+    </TableRow>
+  </TableBody>
+</Table>
+
+### API Keys
+
+Manage API keys for different environments:
+
+```bash
+# Production key with full access
+UNTRACE_API_KEY=utr_prod_xxx
+
+# Development key with limited access
+UNTRACE_API_KEY=utr_dev_xxx
+
+# CI/CD key for automated testing
+UNTRACE_API_KEY=utr_ci_xxx
+```
+
+## Advanced Features
+
+### Trace Sampling
+
+Configure intelligent sampling to reduce costs:
+
+```javascript
+// Sampling configuration
+{
+  "default_sample_rate": 0.1,  // 10% default
+  "rules": [
+    {
+      "condition": "model == 'gpt-4'",
+      "sample_rate": 0.05  // 5% for expensive models
+    },
+    {
+      "condition": "error == true",
+      "sample_rate": 1.0  // 100% for errors
+    },
+    {
+      "condition": "cost > 0.50",
+      "sample_rate": 1.0  // 100% for high-cost requests
+    }
+  ]
+}
+```
+
+### PII Detection
+
+Configure privacy protection:
+
+- **Automatic Detection**: Identify potential PII
+- **Redaction Rules**: Define what to redact
+- **Allowlist**: Specify safe patterns
+- **Audit Trail**: Track redaction events
+
+### Alerting
+
+Set up alerts for important events:
+
+<Tabs>
+  <Tab title="Cost Alerts">
+    - Daily spend thresholds
+    - Unusual cost spikes
+    - Budget warnings
+    - Model-specific limits
+  </Tab>
+  <Tab title="Performance Alerts">
+    - High latency warnings
+    - Error rate thresholds
+    - Rate limit approaching
+    - Service degradation
+  </Tab>
+  <Tab title="Custom Alerts">
+    - Webhook notifications
+    - Email alerts
+    - Slack integration
+    - PagerDuty integration
+  </Tab>
+</Tabs>
+
+## Troubleshooting
+
+### Common Issues
+
+<AccordionGroup>
+  <Accordion title="Traces not appearing">
+    - Verify your API key is correct
+    - Check network connectivity
+    - Ensure proper SDK initialization
+    - Verify routing rules are active
+  </Accordion>
+  <Accordion title="Integration delivery failures">
+    - Check platform credentials
+    - Verify network access
+    - Review error logs
+    - Test with minimal payload
+  </Accordion>
+  <Accordion title="High latency">
+    - Check routing rule complexity
+    - Review sampling configuration
+    - Monitor platform status
+    - Consider regional deployment
+  </Accordion>
+</AccordionGroup>
+
+### Debug Mode
+
+Enable debug mode for detailed diagnostics:
+
+1. Go to **Settings** → **Advanced**
+2. Toggle **Debug Mode**
+3. View detailed trace logs
+4. Export diagnostic bundle
+
+## API Access
+
+Access dashboard functionality programmatically:
+
+```bash
+# Get trace history
+curl -X GET https://api.untrace.dev/v1/traces \
+  -H "Authorization: Bearer YOUR_API_KEY"
+
+# Get analytics data
+curl -X GET https://api.untrace.dev/v1/analytics \
+  -H "Authorization: Bearer YOUR_API_KEY"
+
+# Update routing rules
+curl -X PUT https://api.untrace.dev/v1/routing/rules \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -d @routing-rules.json
+```
+
+See the [API Reference](/api-reference/introduction) for complete documentation.
+
+## Next Steps
+
+<CardGroup>
+  <Card
+    title="SDK Integration"
+    icon="code"
+    href="/sdk"
+  >
+    Integrate Untrace SDK in your applications
+  </Card>
+  <Card
+    title="Routing Guide"
+    icon="route"
+    href="/routing"
+  >
+    Learn advanced routing strategies
+  </Card>
+  <Card
+    title="Provider Setup"
+    icon="plug"
+    href="/providers"
+  >
+    Configure LLM provider connections
+  </Card>
+  <Card
+    title="API Reference"
+    icon="book"
+    href="/api-reference/introduction"
+  >
+    Explore the complete API documentation
+  </Card>
+</CardGroup>

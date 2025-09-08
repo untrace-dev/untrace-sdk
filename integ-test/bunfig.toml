@@ -1,0 +1,4 @@
+[test]
+# Preload the setup script before running tests
+preload = ["./src/setup.ts"]
+

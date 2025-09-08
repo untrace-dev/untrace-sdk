@@ -1,0 +1,9 @@
+{
+  "files": [
+    "*.json"
+  ],
+  "name": "@untrace/tsconfig",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0"
+}

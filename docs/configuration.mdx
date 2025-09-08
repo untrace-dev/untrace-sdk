@@ -1,0 +1,512 @@
+---
+title: 'Configuration'
+description: 'Configure Untrace for your LLM observability needs'
+---
+
+## Configuration Overview
+
+Untrace can be configured through multiple methods:
+- Configuration files (`untrace.config.yaml`)
+- Environment variables
+- SDK initialization parameters
+- Dashboard UI
+
+## Configuration File
+
+The `untrace.config.yaml` file provides comprehensive configuration:
+
+```yaml
+# untrace.config.yaml
+version: "1.0"
+
+# Service identification
+service:
+  name: "my-llm-app"
+  version: "1.0.0"
+  environment: "production"
+
+# Untrace API configuration
+api:
+  key: "${UNTRACE_API_KEY}"  # Use environment variable
+  baseUrl: "https://api.untrace.dev"
+  timeout: 30000
+
+# Routing configuration
+routing:
+  defaultDestination: "langfuse"
+  rules:
+    - name: "Production GPT-4"
+      condition:
+        model: "gpt-4*"
+        environment: "production"
+      destination: "langsmith"
+      
+    - name: "Development"
+      condition:
+        environment: "development"
+      destination: "langfuse"
+
+# Integrations
+integrations:
+  langsmith:
+    apiKey: "${LANGSMITH_API_KEY}"
+    project: "main"
+    
+  langfuse:
+    publicKey: "${LANGFUSE_PUBLIC_KEY}"
+    secretKey: "${LANGFUSE_SECRET_KEY}"
+    
+  webhook:
+    url: "https://your-api.com/traces"
+    headers:
+      Authorization: "Bearer ${WEBHOOK_TOKEN}"
+
+# Sampling configuration
+sampling:
+  default: 0.1  # 10% default sampling
+  rules:
+    - condition: { error: true }
+      rate: 1.0  # 100% for errors
+    - condition: { cost: "> 0.50" }
+      rate: 0.5  # 50% for expensive requests
+
+# Privacy configuration
+privacy:
+  piiDetection:
+    enabled: true
+    redactionMethod: "hash"
+    patterns:
+      - email
+      - phone
+      - ssn
+      - creditCard
+```
+
+## SDK Configuration
+
+### JavaScript/TypeScript
+
+```typescript
+import { init } from '@untrace/sdk';
+
+const untrace = init({
+  // Required
+  apiKey: process.env.UNTRACE_API_KEY,
+  
+  // Service identification
+  serviceName: 'my-llm-app',
+  environment: process.env.NODE_ENV,
+  version: '1.0.0',
+  
+  // Routing
+  routing: {
+    defaultDestination: 'langfuse',
+    rules: [
+      {
+        name: 'High Cost Analysis',
+        condition: (trace) => trace.cost > 0.10,
+        destination: 'langsmith'
+      }
+    ]
+  },
+  
+  // Sampling
+  samplingRate: 0.1,  // 10%
+  
+  // Privacy
+  piiDetection: {
+    enabled: true,
+    redactionMethod: 'mask'
+  },
+  
+  // Performance
+  maxBatchSize: 100,
+  exportIntervalMs: 5000,
+  
+  // Debug
+  debug: process.env.NODE_ENV === 'development'
+});
+```
+
+### Python
+
+```python
+from untrace import Untrace
+
+untrace = Untrace(
+    # Required
+    api_key=os.getenv("UNTRACE_API_KEY"),
+    
+    # Service identification
+    service_name="my-llm-app",
+    environment=os.getenv("ENVIRONMENT", "production"),
+    version="1.0.0",
+    
+    # Routing
+    routing={
+        "default_destination": "langfuse",
+        "rules": [
+            {
+                "name": "High Cost Analysis",
+                "condition": lambda trace: trace.cost > 0.10,
+                "destination": "langsmith"
+            }
+        ]
+    },
+    
+    # Sampling
+    sampling_rate=0.1,  # 10%
+    
+    # Privacy
+    pii_detection={
+        "enabled": True,
+        "redaction_method": "mask"
+    }
+)
+```
+
+## Environment Variables
+
+All configuration can be set via environment variables:
+
+```bash
+# Core configuration
+UNTRACE_API_KEY=utr_your_api_key
+UNTRACE_BASE_URL=https://api.untrace.dev
+UNTRACE_SERVICE_NAME=my-llm-app
+UNTRACE_ENVIRONMENT=production
+UNTRACE_VERSION=1.0.0
+
+# Debug and logging
+UNTRACE_DEBUG=false
+UNTRACE_LOG_LEVEL=info
+
+# Sampling
+UNTRACE_SAMPLING_RATE=0.1
+UNTRACE_SAMPLE_ERRORS=1.0
+
+# Privacy
+UNTRACE_PII_DETECTION=true
+UNTRACE_PII_REDACTION_METHOD=hash
+
+# Performance
+UNTRACE_MAX_BATCH_SIZE=100
+UNTRACE_EXPORT_INTERVAL_MS=5000
+
+# Integration credentials
+LANGSMITH_API_KEY=ls_...
+LANGFUSE_PUBLIC_KEY=pk_...
+LANGFUSE_SECRET_KEY=sk_...
+```
+
+## Integration Configuration
+
+### LangSmith
+
+```yaml
+integrations:
+  langsmith:
+    platform: "langsmith"
+    apiKey: "${LANGSMITH_API_KEY}"
+    project: "production"
+    dataset: "main"
+    config:
+      batchSize: 50
+      flushInterval: 10000
+      retryAttempts: 3
+```
+
+### Langfuse
+
+```yaml
+integrations:
+  langfuse:
+    platform: "langfuse"
+    publicKey: "${LANGFUSE_PUBLIC_KEY}"
+    secretKey: "${LANGFUSE_SECRET_KEY}"
+    host: "https://cloud.langfuse.com"  # or self-hosted URL
+    config:
+      sessionTracking: true
+      userIdentification: true
+      publicLinkGeneration: false
+```
+
+### Custom Webhook
+
+```yaml
+integrations:
+  custom:
+    platform: "webhook"
+    url: "${WEBHOOK_URL}"
+    headers:
+      Authorization: "Bearer ${WEBHOOK_TOKEN}"
+      X-Custom-Header: "value"
+    config:
+      timeout: 30000
+      retryAttempts: 3
+      retryDelay: 1000
+      payloadFormat: "opentelemetry"  # or "custom"
+```
+
+## Advanced Configuration
+
+### Multi-Environment Setup
+
+```yaml
+# untrace.config.yaml with environment overrides
+defaults:
+  sampling: 0.1
+  piiDetection: true
+
+environments:
+  development:
+    routing:
+      defaultDestination: "langfuse"
+    sampling: 1.0  # 100% in dev
+    debug: true
+    
+  staging:
+    routing:
+      defaultDestination: "langfuse"
+    sampling: 0.5  # 50% in staging
+    
+  production:
+    routing:
+      defaultDestination: "langsmith"
+    sampling: 0.1  # 10% in production
+    piiDetection:
+      enabled: true
+      aggressive: true
+```
+
+### Provider-Specific Settings
+
+```yaml
+providers:
+  openai:
+    captureStreaming: true
+    captureTools: true
+    captureImages: false  # Don't capture image inputs
+    
+  anthropic:
+    captureSystemPrompts: true
+    maxPromptLength: 10000  # Truncate long prompts
+    
+  langchain:
+    captureIntermediateSteps: true
+    captureMemory: true
+    captureTools: true
+```
+
+### Performance Tuning
+
+```yaml
+performance:
+  # Batching
+  batching:
+    enabled: true
+    maxBatchSize: 500
+    maxWaitTime: 10000  # 10 seconds
+    
+  # Compression
+  compression:
+    enabled: true
+    algorithm: "gzip"
+    level: 6
+    
+  # Connection pooling
+  connections:
+    maxConcurrent: 10
+    keepAlive: true
+    timeout: 30000
+    
+  # Caching
+  cache:
+    enabled: true
+    ttl: 3600  # 1 hour
+    maxSize: 1000  # entries
+```
+
+### Security Configuration
+
+```yaml
+security:
+  # API key rotation
+  apiKey:
+    primary: "${UNTRACE_API_KEY}"
+    secondary: "${UNTRACE_API_KEY_SECONDARY}"  # For rotation
+    
+  # Network security
+  network:
+    allowedIPs:
+      - "10.0.0.0/8"
+      - "172.16.0.0/12"
+    tlsVersion: "1.3"
+    certificatePinning: true
+    
+  # Data security
+  data:
+    encryptionAtRest: true
+    encryptionInTransit: true
+    fieldEncryption:
+      - "user.email"
+      - "metadata.apiKey"
+```
+
+## Configuration Precedence
+
+Configuration is applied in this order (later overrides earlier):
+
+1. Default values
+2. Configuration file (`untrace.config.yaml`)
+3. Environment variables
+4. SDK initialization parameters
+5. Runtime API calls
+
+Example:
+```typescript
+// 1. Default: samplingRate = 1.0
+
+// 2. Config file sets: samplingRate = 0.5
+
+// 3. Environment variable: UNTRACE_SAMPLING_RATE=0.3
+
+// 4. SDK initialization:
+const untrace = init({
+  samplingRate: 0.1  // This wins
+});
+
+// 5. Runtime override:
+untrace.setSamplingRate(0.2);  // This is now active
+```
+
+## Validation
+
+Untrace validates configuration on startup:
+
+```typescript
+// Enable strict validation
+const untrace = init({
+  apiKey: 'your-key',
+  validateConfig: true,  // Throws on invalid config
+  configSchema: 'strict' // or 'permissive'
+});
+```
+
+Common validation errors:
+- Missing required fields (apiKey)
+- Invalid routing rules
+- Unreachable integration endpoints
+- Invalid sampling rates (must be 0.0-1.0)
+
+## Best Practices
+
+1. **Use Environment Variables for Secrets**
+   ```yaml
+   # Good
+   apiKey: "${UNTRACE_API_KEY}"
+   
+   # Bad
+   apiKey: "utr_abc123..."  # Never commit!
+   ```
+
+2. **Separate Configs by Environment**
+   ```
+   config/
+     untrace.config.yaml      # Base config
+     untrace.dev.yaml        # Development overrides
+     untrace.prod.yaml       # Production overrides
+   ```
+
+3. **Version Your Configuration**
+   ```yaml
+   version: "1.0"  # Always include version
+   ```
+
+4. **Document Custom Settings**
+   ```yaml
+   # Route high-value enterprise customers to premium monitoring
+   # Contact: platform-team@company.com
+   routing:
+     rules:
+       - name: "Enterprise Tier"
+         condition:
+           tags.tier: "enterprise"
+         destination: "premium-monitoring"
+   ```
+
+5. **Monitor Configuration Changes**
+   ```typescript
+   untrace.on('configChanged', (changes) => {
+     logger.info('Configuration updated', changes);
+   });
+   ```
+
+## Troubleshooting
+
+### Configuration Not Loading
+
+```bash
+# Check configuration path
+export UNTRACE_CONFIG_PATH=/path/to/untrace.config.yaml
+
+# Enable debug mode
+export UNTRACE_DEBUG=true
+
+# Validate configuration
+npx @untrace/cli validate-config
+```
+
+### Integration Connection Issues
+
+```typescript
+// Test integration connectivity
+const status = await untrace.testIntegration('langsmith');
+console.log('Integration status:', status);
+```
+
+### Performance Issues
+
+```yaml
+# Optimize for high volume
+performance:
+  batching:
+    maxBatchSize: 1000  # Increase batch size
+  compression:
+    enabled: true       # Enable compression
+  sampling:
+    default: 0.01      # Sample 1% if volume is high
+```
+
+## Next Steps
+
+<CardGroup>
+  <Card
+    title="Routing Rules"
+    icon="route"
+    href="/routing"
+  >
+    Configure intelligent trace routing
+  </Card>
+  <Card
+    title="SDK Reference"
+    icon="code"
+    href="/sdk"
+  >
+    SDK configuration options
+  </Card>
+  <Card
+    title="Security"
+    icon="shield"
+    href="/security"
+  >
+    Security configuration guide
+  </Card>
+  <Card
+    title="Dashboard"
+    icon="gauge"
+    href="/dashboard"
+  >
+    Configure via web interface
+  </Card>
+</CardGroup>

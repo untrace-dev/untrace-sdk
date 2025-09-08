@@ -1,0 +1,469 @@
+---
+title: 'Providers & Integrations'
+description: 'Connect Untrace with LLM providers and observability platforms'
+---
+
+## LLM Providers
+
+Untrace automatically captures traces from all major LLM providers. No special configuration needed - just use our proxy or SDK.
+
+### OpenAI
+
+<Card>
+  <CardContent>
+    <div className="flex items-center justify-between mb-4">
+      <h4 className="text-lg font-semibold">OpenAI</h4>
+      <Badge variant="success">Fully Supported</Badge>
+    </div>
+
+    **Supported Models**: GPT-4, GPT-3.5, Embeddings, DALL-E, Whisper
+
+    **Integration**:
+    ```python
+    # Option 1: Proxy
+    client = OpenAI(
+        base_url="https://api.untrace.dev/v1/proxy",
+        default_headers={"X-Untrace-Key": "your-key"}
+    )
+
+    # Option 2: SDK auto-instrumentation
+    from untrace import init
+    init(api_key="your-key")
+    import openai  # Automatically instrumented
+    ```
+
+    **Captured Data**:
+    - Model name and parameters
+    - Token usage (prompt, completion, total)
+    - Costs (automatically calculated)
+    - Latency and response times
+    - Error states and rate limits
+  </CardContent>
+</Card>
+
+### Anthropic
+
+<Card>
+  <CardContent>
+    <div className="flex items-center justify-between mb-4">
+      <h4 className="text-lg font-semibold">Anthropic</h4>
+      <Badge variant="success">Fully Supported</Badge>
+    </div>
+
+    **Supported Models**: Claude 3 (Opus, Sonnet, Haiku), Claude 2
+
+    **Integration**:
+    ```python
+    # SDK auto-instrumentation
+    from untrace import init
+    init(api_key="your-key")
+
+    from anthropic import Anthropic
+    client = Anthropic()  # Automatically instrumented
+    ```
+
+    **Captured Data**:
+    - Model version and parameters
+    - Token usage and costs
+    - Message structure
+    - System prompts
+    - Tool/function calls
+  </CardContent>
+</Card>
+
+### Google AI
+
+<Card>
+  <CardContent>
+    <div className="flex items-center justify-between mb-4">
+      <h4 className="text-lg font-semibold">Google AI</h4>
+      <Badge variant="success">Fully Supported</Badge>
+    </div>
+
+    **Supported Models**: Gemini Pro, Gemini Ultra, PaLM
+
+    **Integration**:
+    ```python
+    from untrace import init
+    init(api_key="your-key")
+
+    import google.generativeai as genai
+    # Automatically instrumented
+    ```
+
+    **Captured Data**:
+    - Model configurations
+    - Safety settings
+    - Generation config
+    - Multi-modal inputs
+  </CardContent>
+</Card>
+
+### Additional Providers
+
+<CardGroup cols={2}>
+  <Card title="Mistral" icon="sparkles">
+    Models: Large, Medium, Small, Embed
+  </Card>
+  <Card title="Cohere" icon="brain">
+    Models: Command, Embed, Rerank
+  </Card>
+  <Card title="AWS Bedrock" icon="aws">
+    All Bedrock models supported
+  </Card>
+  <Card title="Azure OpenAI" icon="microsoft">
+    Enterprise OpenAI deployments
+  </Card>
+  <Card title="Together.ai" icon="users">
+    Open source model hosting
+  </Card>
+  <Card title="Replicate" icon="copy">
+    Model marketplace
+  </Card>
+  <Card title="Hugging Face" icon="face-smile">
+    Inference API & Endpoints
+  </Card>
+  <Card title="Groq" icon="bolt">
+    Ultra-fast inference
+  </Card>
+</CardGroup>
+
+## Framework Support
+
+### LangChain
+
+<Card>
+  <CardContent>
+    **Auto-instrumentation** for all LangChain components:
+
+    ```python
+    from untrace import init
+    init(api_key="your-key")
+
+    # All automatically traced
+    from langchain.chat_models import ChatOpenAI
+    from langchain.chains import LLMChain
+    from langchain.agents import initialize_agent
+    ```
+
+    **Captured**:
+    - Chain execution flow
+    - Agent decisions and tool usage
+    - Memory and context
+    - Retrieval steps
+    - All LLM calls within chains
+  </CardContent>
+</Card>
+
+### LlamaIndex
+
+<Card>
+  <CardContent>
+    **Full support** for LlamaIndex workflows:
+
+    ```python
+    from untrace import init
+    init(api_key="your-key")
+
+    from llama_index import VectorStoreIndex
+    # RAG pipeline automatically traced
+    ```
+
+    **Captured**:
+    - Index operations
+    - Query transformations
+    - Retrieval steps
+    - Synthesis process
+    - Embedding calls
+  </CardContent>
+</Card>
+
+### Vercel AI SDK
+
+<Card>
+  <CardContent>
+    **Edge-ready** instrumentation:
+
+    ```typescript
+    import { init } from '@untrace/sdk';
+    init({ apiKey: 'your-key' });
+
+    // Automatically traced
+    import { openai } from '@ai-sdk/openai';
+    ```
+  </CardContent>
+</Card>
+
+## Observability Platforms
+
+Configure where Untrace sends your traces:
+
+### LangSmith
+
+<Card>
+  <CardContent>
+    <div className="flex items-center justify-between mb-4">
+      <h4 className="text-lg font-semibold">LangSmith</h4>
+      <Badge>Official Integration</Badge>
+    </div>
+
+    **Setup**:
+    ```json
+    {
+      "platform": "langsmith",
+      "config": {
+        "apiKey": "ls_...",
+        "projectId": "your-project",
+        "datasetId": "optional-dataset"
+      }
+    }
+    ```
+
+    **Features**:
+    - Full trace visualization
+    - Dataset management
+    - Evaluation workflows
+    - Feedback collection
+    - Project organization
+  </CardContent>
+</Card>
+
+### Langfuse
+
+<Card>
+  <CardContent>
+    <div className="flex items-center justify-between mb-4">
+      <h4 className="text-lg font-semibold">Langfuse</h4>
+      <Badge>Official Integration</Badge>
+    </div>
+
+    **Setup**:
+    ```json
+    {
+      "platform": "langfuse",
+      "config": {
+        "publicKey": "pk_...",
+        "secretKey": "sk_...",
+        "host": "https://cloud.langfuse.com"
+      }
+    }
+    ```
+
+    **Features**:
+    - Open source option
+    - Session tracking
+    - User feedback
+    - Cost tracking
+    - Public trace sharing
+  </CardContent>
+</Card>
+
+### Keywords.ai
+
+<Card>
+  <CardContent>
+    <div className="flex items-center justify-between mb-4">
+      <h4 className="text-lg font-semibold">Keywords.ai</h4>
+      <Badge>Official Integration</Badge>
+    </div>
+
+    **Setup**:
+    ```json
+    {
+      "platform": "keywords",
+      "config": {
+        "apiKey": "key_...",
+        "customerId": "your-customer-id"
+      }
+    }
+    ```
+
+    **Features**:
+    - LLM analytics
+    - Cost optimization
+    - Performance monitoring
+    - Custom alerts
+  </CardContent>
+</Card>
+
+### More Integrations
+
+<CardGroup cols={2}>
+  <Card title="Helicone" icon="fire">
+    LLM observability & caching
+  </Card>
+  <Card title="Arize Phoenix" icon="bird">
+    ML observability platform
+  </Card>
+  <Card title="LangWatch" icon="eye">
+    LLM quality monitoring
+  </Card>
+  <Card title="Custom Webhook" icon="webhook">
+    Send to any HTTP endpoint
+  </Card>
+</CardGroup>
+
+## Custom Integration
+
+### Webhook Format
+
+Send traces to your own endpoint:
+
+```json
+{
+  "platform": "webhook",
+  "config": {
+    "url": "https://your-api.com/traces",
+    "headers": {
+      "Authorization": "Bearer your-token",
+      "X-Custom-Header": "value"
+    },
+    "retry": {
+      "maxAttempts": 3,
+      "backoffMs": 1000
+    }
+  }
+}
+```
+
+### Payload Structure
+
+Untrace sends standardized trace data:
+
+```typescript
+interface TracePayload {
+  id: string;
+  timestamp: string;
+  service: {
+    name: string;
+    version?: string;
+    environment?: string;
+  };
+  trace: {
+    model: string;
+    provider: string;
+    operation: 'chat' | 'completion' | 'embedding';
+
+    input: {
+      messages?: Message[];
+      prompt?: string;
+      parameters: Record<string, any>;
+    };
+
+    output: {
+      content?: string;
+      choices?: Choice[];
+      embedding?: number[];
+    };
+
+    metrics: {
+      latencyMs: number;
+      promptTokens: number;
+      completionTokens: number;
+      totalTokens: number;
+      cost?: {
+        prompt: number;
+        completion: number;
+        total: number;
+        currency: string;
+      };
+    };
+
+    metadata?: Record<string, any>;
+    error?: {
+      type: string;
+      message: string;
+      code?: string;
+    };
+  };
+}
+```
+
+## Configuration Examples
+
+### Multi-Platform Routing
+
+Route different traces to different platforms:
+
+```yaml
+routing:
+  rules:
+    # Development traces to Langfuse
+    - name: "Dev to Langfuse"
+      condition:
+        environment: "development"
+      destination: "langfuse"
+
+    # Production GPT-4 to LangSmith
+    - name: "Prod GPT-4"
+      condition:
+        environment: "production"
+        model: "gpt-4*"
+      destination: "langsmith"
+
+    # Errors to custom webhook
+    - name: "Error Handler"
+      condition:
+        error: true
+      destinations:
+        - "langsmith"
+        - platform: "webhook"
+          url: "https://alerts.company.com"
+```
+
+### Provider-Specific Settings
+
+Customize behavior per provider:
+
+```typescript
+init({
+  apiKey: 'your-key',
+  providers: {
+    openai: {
+      captureStreaming: true,
+      includePromptTemplates: true
+    },
+    anthropic: {
+      captureSystemPrompts: true,
+      maskSensitiveData: true
+    },
+    langchain: {
+      traceFullChain: true,
+      includeIntermediateSteps: true
+    }
+  }
+});
+```
+
+## Best Practices
+
+1. **Start Simple**: Begin with one provider and one destination
+2. **Test Thoroughly**: Use test API keys before production
+3. **Monitor Costs**: Set up sampling for expensive models
+4. **Secure Keys**: Never commit API keys to version control
+5. **Use Environments**: Separate dev/staging/production configs
+
+## Troubleshooting
+
+### Provider Not Traced?
+
+```typescript
+// Check if provider is loaded
+console.log(untrace.getInstrumentedProviders());
+
+// Force instrumentation
+const client = untrace.instrument('openai', openaiClient);
+```
+
+### Integration Not Receiving?
+
+1. Check API keys and permissions
+2. Verify network connectivity
+3. Review error logs in dashboard
+4. Test with minimal payload
+
+### Need Help?
+
+- 📚 [Full Documentation](https://docs.untrace.dev)
+- 💬 [Discord Community](https://discord.gg/untrace)
+- 📧 [Support Email](mailto:support@untrace.dev)

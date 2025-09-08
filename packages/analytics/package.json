@@ -1,0 +1,45 @@
+{
+  "dependencies": {
+    "@clerk/chrome-extension": "2.5.29",
+    "@clerk/nextjs": "6.31.9",
+    "@sentry/nextjs": "10.10.0",
+    "@t3-oss/env-core": "0.13.8",
+    "@t3-oss/env-nextjs": "0.13.8",
+    "@untrace/ui": "workspace:*",
+    "@vercel/analytics": "1.5.0",
+    "@vercel/speed-insights": "1.2.0",
+    "nextjs-google-analytics": "2.3.7",
+    "posthog-js": "1.261.7",
+    "posthog-node": "5.8.2",
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "zod": "4.1.5"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "8.10.152",
+    "@types/chrome": "0.1.6",
+    "@types/react": "19.1.12",
+    "@types/react-dom": "19.1.9",
+    "@untrace/tsconfig": "workspace:*",
+    "next": "15.5.2",
+    "typescript": "5.9.2"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./components": "./src/components/index.tsx",
+    "./posthog/chrome-extension": "./src/posthog/chrome-extension.tsx",
+    "./posthog/client": "./src/posthog/client.tsx",
+    "./posthog/server": "./src/posthog/server.ts",
+    "./posthog/vscode": "./src/posthog/vscode.ts"
+  },
+  "license": "MIT",
+  "name": "@untrace/analytics",
+  "private": true,
+  "scripts": {
+    "clean": "git clean -xdf .turbo node_modules dist",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false"
+  },
+  "type": "module",
+  "version": "0.1.0"
+}

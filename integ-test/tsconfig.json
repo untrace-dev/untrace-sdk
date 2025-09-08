@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "outDir": "dist",
+    "paths": {
+      "@untrace/sdk": ["../../sdks/js/src/index.js"],
+      "~/*": ["./src/*"]
+    },
+    "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json",
+    "types": ["vitest/globals", "node", "ws", "@types/bun"]
+  },
+  "exclude": ["node_modules"],
+  "extends": "@untrace/tsconfig/node.json",
+  "include": ["*.ts", "src"]
+}

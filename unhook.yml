@@ -1,0 +1,40 @@
+# Untrace Webhook Configuration
+#
+# For more information, visit: https://docs.untrace.sh/configuration
+#
+# Copy the following URL in your services:
+# http://localhost:3000/seawatts/untrace
+#
+# Optionally, you can attach ?source=Clerk to the URL.
+# Clerk: http://localhost:3000/seawatts/untrace?source=clerk
+# Stripe: http://localhost:3000/seawatts/untrace?source=stripe
+# etc...
+#
+# Schema:
+#   webhookUrl: string                   # Full webhook URL (e.g., http://localhost:3000/my-org/my-webhook)
+#   destination:                         # Array of destination endpoints
+#     - name: string                     # Name of the endpoint
+#       url: string|URL|RemotePattern    # URL to forward webhooks to
+#       ping?: boolean|string|URL        # Optional ping configuration
+#   delivery:                             # Array of delivery rules
+#     - source?: string                  # Optional source filter (default: *)
+#       destination: string              # Name of the destination from 'destination' array
+
+# Test Curl:
+# curl -X POST http://localhost:3000/seawatts/untrace?source=test -H "Content-Type: application/json" -d '{"type": "test.command", "data": { "message": "Hello, world!" }}'
+
+webhookUrl: https://unhook.sh/seawatts/untrace
+destination:
+  - name: clerk
+    url: http://localhost:3000/api/webhooks/clerk
+  - name: stripe
+    url: http://localhost:3000/api/webhooks/stripe
+  - name: untrace
+    url: http://localhost:3000/api/webhooks/untrace
+delivery:
+  - source: 'clerk'
+    destination: clerk
+  - source: 'stripe'
+    destination: stripe
+  - source: 'untrace'
+    destination: untrace

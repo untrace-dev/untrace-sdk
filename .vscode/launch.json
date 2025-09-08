@@ -1,0 +1,38 @@
+{
+  "configurations": [
+    {
+      "command": "infisical run -- bun test ${relativeFile}",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "INFISICAL_RUN": "true"
+      },
+      "name": "Debug Current Test File",
+      "request": "launch",
+      "type": "node-terminal"
+      // "envFile": "${workspaceFolder}/.env",
+      // "smartStep": true,
+      // "console": "integratedTerminal"
+    },
+    {
+      "command": "bun dev",
+      "cwd": "${workspaceFolder}/apps/nextjs/",
+      "name": "Next.js",
+      "request": "launch",
+      "skipFiles": ["<node_internals>/**"],
+      "type": "node-terminal"
+    },
+    {
+      "args": [
+        "--disable-extensions",
+        "--extensionDevelopmentPath=${workspaceFolder}/apps/vscode-extension"
+      ],
+      "cwd": "${workspaceFolder}/apps/vscode-extension",
+      "name": "Run VSCode Extension",
+      "outFiles": ["${workspaceFolder}/apps/vscode-extension/dist/**/*.js"],
+      "preLaunchTask": "prepare-extension",
+      "request": "launch",
+      "type": "extensionHost"
+    }
+  ],
+  "version": "0.2.0"
+}

@@ -1,0 +1,129 @@
+{
+  "author": "Untrace Team",
+  "bugs": {
+    "url": "https://github.com/untrace-dev/untrace/issues"
+  },
+  "dependencies": {
+    "@opentelemetry/api": "1.9.0",
+    "@opentelemetry/core": "2.1.0",
+    "@opentelemetry/instrumentation": "0.204.0",
+    "@opentelemetry/resources": "2.1.0",
+    "@opentelemetry/sdk-node": "^0.204.0",
+    "@opentelemetry/sdk-trace-base": "2.1.0",
+    "@opentelemetry/sdk-trace-node": "2.1.0",
+    "@opentelemetry/semantic-conventions": "1.37.0",
+    "@orpc/client": "1.8.6",
+    "@orpc/server": "1.8.6"
+  },
+  "description": "LLM observability SDK for JavaScript/TypeScript - instrument once, observe everywhere",
+  "devDependencies": {
+    "@anthropic-ai/sdk": "0.61.0",
+    "@types/node": "24.3.1",
+    "ai": "5.0.34",
+    "cohere-ai": "7.18.1",
+    "langchain": "0.3.33",
+    "llamaindex": "0.11.28",
+    "openai": "5.19.1",
+    "tsup": "8.5.0",
+    "typescript": "5.9.2",
+    "vitest": "3.2.4"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "types": "./dist/index.d.ts"
+    },
+    "./providers/*": {
+      "import": "./dist/providers/*.js",
+      "require": "./dist/providers/*.cjs",
+      "types": "./dist/providers/*.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "homepage": "https://github.com/untrace-dev/untrace#readme",
+  "keywords": [
+    "llm",
+    "observability",
+    "tracing",
+    "monitoring",
+    "openai",
+    "anthropic",
+    "ai-sdk",
+    "opentelemetry",
+    "langchain",
+    "llamaindex",
+    "generative-ai",
+    "llmops"
+  ],
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "name": "@untrace/sdk",
+  "peerDependencies": {
+    "@anthropic-ai/sdk": ">=0.20.0",
+    "@aws-sdk/client-bedrock-runtime": ">=3.0.0",
+    "@google-cloud/vertexai": ">=1.0.0",
+    "@mistralai/mistralai": ">=1.0.0",
+    "ai": ">=3.0.0",
+    "cohere-ai": ">=7.0.0",
+    "langchain": ">=0.2.0",
+    "llamaindex": ">=0.5.0",
+    "openai": ">=4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@anthropic-ai/sdk": {
+      "optional": true
+    },
+    "@aws-sdk/client-bedrock-runtime": {
+      "optional": true
+    },
+    "@google-cloud/vertexai": {
+      "optional": true
+    },
+    "@mistralai/mistralai": {
+      "optional": true
+    },
+    "ai": {
+      "optional": true
+    },
+    "cohere-ai": {
+      "optional": true
+    },
+    "langchain": {
+      "optional": true
+    },
+    "llamaindex": {
+      "optional": true
+    },
+    "openai": {
+      "optional": true
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "directory": "sdks/js",
+    "type": "git",
+    "url": "git+https://github.com/untrace-dev/untrace.git"
+  },
+  "scripts": {
+    "build": "tsup",
+    "clean": "rm -rf dist node_modules .turbo",
+    "dev": "tsup --watch",
+    "prepublishOnly": "bun run typecheck && bun run build",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "version": "0.1.0"
+}

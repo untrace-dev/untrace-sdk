@@ -1,0 +1,14 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@2.3.1/schema.json",
+  "access": "public",
+  "baseBranch": "main",
+  "changelog": [
+    "@changesets/changelog-github",
+    {
+      "repo": "untrace-dev/untrace"
+    }
+  ],
+  "commit": false,
+  "fixed": [],
+  "linked": []
+}

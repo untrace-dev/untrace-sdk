@@ -1,0 +1,7 @@
+{
+  "description": "LLM observability SDK for Python",
+  "name": "@untrace/sdk-python",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0"
+}
