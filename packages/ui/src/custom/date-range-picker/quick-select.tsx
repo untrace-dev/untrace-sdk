@@ -16,8 +16,6 @@ export function QuickSelect({
   selectedValue,
   onSelect,
   options,
-  visible,
-  placeholder,
 }: QuickSelectProps) {
   return (
     <Select

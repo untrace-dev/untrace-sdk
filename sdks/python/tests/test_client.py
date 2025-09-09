@@ -33,13 +33,15 @@ class TestUntraceClient:
         client = UntraceClient(api_key="test-key")
 
         mock_response = AsyncMock()
-        mock_response.json = AsyncMock(return_value={
-            "id": "trace-123",
-            "timestamp": "2023-01-01T00:00:00Z",
-            "event_type": "llm_call",
-            "data": {"model": "gpt-4"},
-            "metadata": {},
-        })
+        mock_response.json = AsyncMock(
+            return_value={
+                "id": "trace-123",
+                "timestamp": "2023-01-01T00:00:00Z",
+                "event_type": "llm_call",
+                "data": {"model": "gpt-4"},
+                "metadata": {},
+            }
+        )
 
         with patch.object(client._client, "post", return_value=mock_response):
             trace = await client.trace(
@@ -74,7 +76,9 @@ class TestUntraceClient:
         mock_response.status_code = 500
         mock_response.text = "Internal server error"
         mock_response.raise_for_status = lambda: (_ for _ in ()).throw(
-            httpx.HTTPStatusError("500 Internal Server Error", request=None, response=mock_response)
+            httpx.HTTPStatusError(
+                "500 Internal Server Error", request=None, response=mock_response
+            )
         )
 
         with patch.object(client._client, "post", return_value=mock_response):

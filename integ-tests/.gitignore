@@ -3,6 +3,8 @@ node_modules/
 
 # Test output
 coverage/
+.coverage
+coverage.xml
 test-results/
 *.log
 

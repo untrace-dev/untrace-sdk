@@ -5,8 +5,17 @@ node_modules
 .pnp
 .pnp.js
 
+# python
+.venv/
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
 # testing
 coverage
+.coverage
+coverage.xml
 
 # next.js
 .next/
@@ -16,13 +25,6 @@ next-env.d.ts
 # nitro
 .nitro/
 .output/
-
-# expo
-.expo/
-expo-env.d.ts
-apps/expo/.gitignore
-apps/expo/ios
-apps/expo/android
 
 # production
 build
@@ -51,6 +53,3 @@ dist/
 
 # turbo
 .turbo
-
-apps/cli/bin
-apps/cli/certificates

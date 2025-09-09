@@ -1,6 +1,5 @@
 import withBundleAnalyzer from '@next/bundle-analyzer';
 import { withPostHogConfig } from '@posthog/nextjs-config';
-import { withBaml } from './baml-config.mjs';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -60,7 +59,6 @@ const withPlugins = [
   process.env.WITH_BUNDLE_ANALYZER === 'true'
     ? withBundleAnalyzer({ enabled: true })
     : null,
-  withBaml(),
 ].filter((plugin) => plugin !== null);
 
 const configWithPlugins = withPlugins.reduce(
