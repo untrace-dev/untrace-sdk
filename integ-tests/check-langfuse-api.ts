@@ -1,5 +1,5 @@
 import { expect } from 'bun:test';
-import { env } from './test-utils/env';
+import { env } from './src/env';
 
 export async function checkLangfuseAPI() {
   console.log('🔍 Checking Langfuse API for traces...\n');
