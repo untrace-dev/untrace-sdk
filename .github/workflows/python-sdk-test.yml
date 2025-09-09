@@ -1,0 +1,73 @@
+name: Python SDK Test
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'sdks/python/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'sdks/python/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FORCE_COLOR: 3
+  TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+
+jobs:
+  test:
+    name: Test Python SDK
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup
+
+      - name: Setup Python Environment
+        uses: ./.github/actions/python-setup
+
+      - name: Run tests
+        working-directory: sdks/python
+        run: |
+          pytest tests/ -v --cov=src/untrace --cov-report=xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: sdks/python/coverage.xml
+          flags: python-sdk
+          name: python-sdk-coverage
+          fail_ci_if_error: false
+
+  lint:
+    name: Lint Python SDK
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup
+
+      - name: Setup Python Environment
+        uses: ./.github/actions/python-setup
+
+      - name: Run linting
+        working-directory: sdks/python
+        run: |
+          ruff check src/ tests/
+          black --check src/ tests/
+          isort --check-only src/ tests/
+          mypy src/

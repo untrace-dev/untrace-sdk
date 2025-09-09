@@ -1,0 +1,22 @@
+name: "Python Setup"
+description: "Setup Python environment and install dependencies for Python SDK"
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install build dependencies
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        pip install build twine
+
+    - name: Install Python package dependencies
+      shell: bash
+      working-directory: sdks/python
+      run: |
+        pip install -e ".[dev]"

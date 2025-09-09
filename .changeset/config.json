@@ -5,10 +5,11 @@
   "changelog": [
     "@changesets/changelog-github",
     {
-      "repo": "untrace-dev/untrace"
+      "repo": "untrace-dev/untrace-sdk"
     }
   ],
   "commit": false,
   "fixed": [],
-  "linked": []
+  "linked": [],
+  "updateInternalDependencies": "patch"
 }

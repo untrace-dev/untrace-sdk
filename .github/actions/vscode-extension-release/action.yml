@@ -21,7 +21,7 @@ runs:
   using: composite
   steps:
     - name: Setup Environment
-      uses: ./tooling/github/setup
+      uses: ./.github/actions/setup
 
     - name: Build Stripe Generated Files
       shell: bash

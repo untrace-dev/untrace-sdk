@@ -30,7 +30,7 @@ jobs:
           fetch-depth: 1
 
       - name: Setup
-        uses: ./tooling/github/setup
+        uses: ./.github/actions/setup
 
       - name: Build database package
         run: bun run build --filter=@untrace/db...

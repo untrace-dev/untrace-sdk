@@ -77,7 +77,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Environment
-        uses: ./tooling/github/setup
+        uses: ./.github/actions/setup
 
       - name: Get version from package.json
         id: version
@@ -86,7 +86,7 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Release VSCode Extension
-        uses: ./tooling/github/vscode-extension/github-release
+        uses: ./.github/actions/vscode-extension-release
         with:
           version: ${{ steps.version.outputs.version }}
           vsce_pat: ${{ env.VSCE_PAT }}

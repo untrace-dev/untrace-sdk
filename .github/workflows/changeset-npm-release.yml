@@ -30,7 +30,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Environment
-        uses: ./tooling/github/setup
+        uses: ./.github/actions/setup
 
       - name: Create Release Pull Request or Publish to npm
         id: changesets
