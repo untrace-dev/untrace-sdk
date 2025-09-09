@@ -1,19 +1,19 @@
 #!/usr/bin/env node
 
 /**
- * Sync Python package version from package.json to pyproject.toml using uv
+ * Sync Python package version from package.json to pyproject.toml
  * This script is called by changesets when versioning packages
  */
 
-const { readFileSync } = require('node:fs');
+const { readFileSync, writeFileSync } = require('node:fs');
 const { join, dirname } = require('node:path');
-const { execSync } = require('node:child_process');
 
 const scriptDir = dirname(__filename);
 
 const rootDir = join(scriptDir, '..');
 const pythonSdkDir = join(rootDir, 'sdks', 'python');
 const packageJsonPath = join(pythonSdkDir, 'package.json');
+const pyprojectPath = join(pythonSdkDir, 'pyproject.toml');
 
 try {
   // Read the new version from package.json (updated by changesets)
@@ -22,15 +22,20 @@ try {
 
   console.log(`🔄 Syncing Python package version to: ${newVersion}`);
 
-  // Use uv to update the version in pyproject.toml
-  // This is more reliable than manual file editing
-  execSync(`uv version ${newVersion}`, {
-    cwd: pythonSdkDir,
-    stdio: 'inherit',
-  });
+  // Update pyproject.toml directly (uv version doesn't accept version arguments)
+  const pyprojectContent = readFileSync(pyprojectPath, 'utf8');
+  const updatedContent = pyprojectContent.replace(
+    /version = ".*"/,
+    `version = "${newVersion}"`,
+  );
 
+  if (updatedContent === pyprojectContent) {
+    throw new Error('Could not find version line in pyproject.toml to update');
+  }
+
+  writeFileSync(pyprojectPath, updatedContent);
   console.log(
-    `✅ Successfully updated pyproject.toml version to ${newVersion} using uv`,
+    `✅ Successfully updated pyproject.toml version to ${newVersion}`,
   );
 } catch (error) {
   console.error('❌ Error syncing Python version:', error.message);

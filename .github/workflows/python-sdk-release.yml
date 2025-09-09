@@ -41,13 +41,13 @@ jobs:
       - id: check-python
         name: Check if Python SDK version changed
         run: |
-          # Check if the Python SDK version was bumped in the last commit
-          if git diff HEAD~1 HEAD -- sdks/python/package.json | grep -q '"version"'; then
+          # Check if the Python SDK version was bumped in pyproject.toml (the actual Python package version)
+          if git diff HEAD~1 HEAD -- sdks/python/pyproject.toml | grep -q 'version ='; then
             echo "version_changed=true" >> $GITHUB_OUTPUT
-            echo "Python SDK version was changed"
+            echo "Python SDK version was changed in pyproject.toml"
           else
             echo "version_changed=false" >> $GITHUB_OUTPUT
-            echo "Python SDK version was not changed"
+            echo "Python SDK version was not changed in pyproject.toml"
           fi
 
   release:
