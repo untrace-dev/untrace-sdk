@@ -76,7 +76,7 @@ jobs:
       - name: Build Python package
         run: |
           cd sdks/python
-          python -m build
+          uv run python -m build
 
       - name: Publish to PyPI
         env:
@@ -84,7 +84,7 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         run: |
           cd sdks/python
-          python -m twine upload dist/*
+          uv run python -m twine upload dist/*
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1

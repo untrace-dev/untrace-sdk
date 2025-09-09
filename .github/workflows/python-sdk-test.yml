@@ -41,7 +41,7 @@ jobs:
       - name: Run tests
         working-directory: sdks/python
         run: |
-          pytest tests/ -v --cov=src/untrace --cov-report=xml
+          uv run pytest tests/ -v --cov=src/untrace --cov-report=xml
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
@@ -67,7 +67,7 @@ jobs:
       - name: Run linting
         working-directory: sdks/python
         run: |
-          ruff check src/ tests/
-          black --check src/ tests/
-          isort --check-only src/ tests/
-          mypy src/
+          uv run ruff check src/ tests/
+          uv run black --check src/ tests/
+          uv run isort --check-only src/ tests/
+          uv run mypy src/
