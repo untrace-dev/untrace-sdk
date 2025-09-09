@@ -1,11 +1,11 @@
 """Main client for the Untrace SDK."""
 
 import asyncio
-from typing import Any, Dict, Optional, Union
-from datetime import datetime
+from datetime import datetime, timezone
+from typing import Any, Dict, Optional
 
 import httpx
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class TraceEvent(BaseModel):
@@ -48,15 +48,17 @@ class UntraceClient:
             timeout=timeout,
         )
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> "UntraceClient":
         """Async context manager entry."""
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(
+        self, exc_type: type, exc_val: Exception, exc_tb: object
+    ) -> None:
         """Async context manager exit."""
         await self.close()
 
-    async def close(self):
+    async def close(self) -> None:
         """Close the HTTP client."""
         await self._client.aclose()
 
@@ -87,26 +89,25 @@ class UntraceClient:
                 "event_type": event_type,
                 "data": data,
                 "metadata": metadata or {},
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
             response = await self._client.post("/api/v1/traces", json=payload)
 
             if response.status_code == 422:
                 raise UntraceValidationError(
-                    f"Validation error: {response.text}",
-                    response=response
+                    f"Validation error: {response.text}", response=response
                 )
 
             response.raise_for_status()
 
-            trace_data = response.json()
+            trace_data = await response.json()
             return TraceEvent(**trace_data)
 
         except httpx.HTTPStatusError as e:
             raise UntraceAPIError(
                 f"API request failed with status {e.response.status_code}: {e.response.text}",
-                response=e.response
+                response=e.response,
             ) from e
         except httpx.RequestError as e:
             raise UntraceAPIError(f"Request failed: {str(e)}") from e
@@ -153,7 +154,7 @@ class UntraceClient:
         except httpx.HTTPStatusError as e:
             raise UntraceAPIError(
                 f"API request failed with status {e.response.status_code}: {e.response.text}",
-                response=e.response
+                response=e.response,
             ) from e
         except httpx.RequestError as e:
             raise UntraceAPIError(f"Request failed: {str(e)}") from e

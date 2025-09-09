@@ -15,6 +15,13 @@
     "VERCEL_TOKEN"
   ],
   "tasks": {
+    "@untrace/sdk-python#build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", "build/**"]
+    },
+    "@untrace/sdk-python#typecheck": {
+      "outputs": [".mypy_cache/**"]
+    },
     "//#clean": {
       "cache": false
     },

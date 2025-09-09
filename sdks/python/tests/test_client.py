@@ -1,8 +1,11 @@
 """Tests for the UntraceClient."""
 
-import pytest
 from unittest.mock import AsyncMock, patch
-from untrace import UntraceClient, UntraceAPIError, UntraceValidationError
+
+import httpx
+import pytest
+
+from untrace import UntraceAPIError, UntraceClient, UntraceValidationError
 
 
 class TestUntraceClient:
@@ -18,9 +21,7 @@ class TestUntraceClient:
     def test_client_initialization_with_custom_params(self):
         """Test client initialization with custom parameters."""
         client = UntraceClient(
-            api_key="test-key",
-            base_url="https://custom.api.com",
-            timeout=60.0
+            api_key="test-key", base_url="https://custom.api.com", timeout=60.0
         )
         assert client.api_key == "test-key"
         assert client.base_url == "https://custom.api.com"
@@ -32,19 +33,19 @@ class TestUntraceClient:
         client = UntraceClient(api_key="test-key")
 
         mock_response = AsyncMock()
-        mock_response.json.return_value = {
+        mock_response.json = AsyncMock(return_value={
             "id": "trace-123",
             "timestamp": "2023-01-01T00:00:00Z",
             "event_type": "llm_call",
             "data": {"model": "gpt-4"},
-            "metadata": {}
-        }
+            "metadata": {},
+        })
 
-        with patch.object(client._client, 'post', return_value=mock_response):
+        with patch.object(client._client, "post", return_value=mock_response):
             trace = await client.trace(
                 event_type="llm_call",
                 data={"model": "gpt-4"},
-                metadata={"user_id": "user123"}
+                metadata={"user_id": "user123"},
             )
 
             assert trace.id == "trace-123"
@@ -60,12 +61,9 @@ class TestUntraceClient:
         mock_response.status_code = 422
         mock_response.text = "Validation error"
 
-        with patch.object(client._client, 'post', return_value=mock_response):
+        with patch.object(client._client, "post", return_value=mock_response):
             with pytest.raises(UntraceValidationError):
-                await client.trace(
-                    event_type="invalid",
-                    data={}
-                )
+                await client.trace(event_type="invalid", data={})
 
     @pytest.mark.asyncio
     async def test_trace_api_error(self):
@@ -75,10 +73,10 @@ class TestUntraceClient:
         mock_response = AsyncMock()
         mock_response.status_code = 500
         mock_response.text = "Internal server error"
+        mock_response.raise_for_status = lambda: (_ for _ in ()).throw(
+            httpx.HTTPStatusError("500 Internal Server Error", request=None, response=mock_response)
+        )
 
-        with patch.object(client._client, 'post', return_value=mock_response):
+        with patch.object(client._client, "post", return_value=mock_response):
             with pytest.raises(UntraceAPIError):
-                await client.trace(
-                    event_type="llm_call",
-                    data={"model": "gpt-4"}
-                )
+                await client.trace(event_type="llm_call", data={"model": "gpt-4"})

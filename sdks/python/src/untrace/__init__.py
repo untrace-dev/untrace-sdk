@@ -5,7 +5,7 @@ __author__ = "Untrace"
 __email__ = "hello@untrace.dev"
 
 from .client import UntraceClient
-from .exceptions import UntraceError, UntraceAPIError, UntraceValidationError
+from .exceptions import UntraceAPIError, UntraceError, UntraceValidationError
 
 __all__ = [
     "UntraceClient",

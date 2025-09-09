@@ -1,4 +1,4 @@
-import type { TraceType } from '@untrace/db/schema';
+import type { TraceType } from './db-types';
 
 // Standard Integration Interface
 export interface IntegrationProvider {

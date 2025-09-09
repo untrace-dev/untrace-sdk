@@ -3,6 +3,11 @@
   "name": "@untrace/sdk-python",
   "private": true,
   "scripts": {
+    "build": "uv build",
+    "format": "uv run black src/untrace tests/ && uv run isort src/untrace tests/",
+    "lint": "uv run ruff check src/untrace tests/",
+    "test": "uv run pytest tests/ -v",
+    "typecheck": "uv run mypy src/untrace",
     "version": "node ../../scripts/sync-python-version.cjs"
   },
   "type": "module",

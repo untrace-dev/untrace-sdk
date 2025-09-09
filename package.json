@@ -77,7 +77,7 @@
     "packages": [
       "packages/*",
       "examples/*",
-      "integ-tests/*",
+      "integ-tests",
       "tooling/*",
       "sdks/*",
       "docs"

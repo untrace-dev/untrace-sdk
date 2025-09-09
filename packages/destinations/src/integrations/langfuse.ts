@@ -1,4 +1,4 @@
-import type { TraceType } from '@untrace/db/schema';
+import type { TraceType } from '../db-types';
 import type { IntegrationConfig, IntegrationProvider } from '../types';
 import { extractLLMDataFromTrace } from '../utils/llm-data-extractor';
 

@@ -1,9 +1,6 @@
 import type { Attributes } from '@opentelemetry/api';
 import { type ExportResult, ExportResultCode } from '@opentelemetry/core';
 import type { ReadableSpan, SpanExporter } from '@opentelemetry/sdk-trace-base';
-import { createORPCClient } from '@orpc/client';
-import { RPCLink } from '@orpc/client/fetch';
-import type { RouterClient } from '@orpc/server';
 import type { UntraceConfig } from './types';
 
 interface OTLPAttribute {
@@ -77,22 +74,9 @@ interface OTLPExportRequest {
  */
 export class UntraceExporter implements SpanExporter {
   private readonly config: UntraceConfig;
-  private readonly client: RouterClient<any>;
 
   constructor(config: UntraceConfig) {
     this.config = config;
-
-    // Create oRPC client
-    const link = new RPCLink({
-      headers: () => ({
-        Authorization: `Bearer ${config.apiKey}`,
-        'Content-Type': 'application/json',
-        ...config.headers,
-      }),
-      url: `${config.baseUrl}/api/v1`,
-    });
-
-    this.client = createORPCClient(link) as RouterClient<any>;
 
     if (config.debug) {
       console.log('[UntraceExporter] Initialized with config:', {
@@ -159,15 +143,24 @@ export class UntraceExporter implements SpanExporter {
       const payload = this.convertSpansToPayload(spans);
       console.log('[UntraceExporter] Payload prepared, sending request...');
 
-      const result = await this.client.traces.ingest({
-        resourceSpans: payload.resourceSpans,
+      const response = await fetch(exportUrl, {
+        body: JSON.stringify(payload),
+        headers: {
+          Authorization: `Bearer ${this.config.apiKey}`,
+          'Content-Type': 'application/json',
+          ...this.config.headers,
+        },
+        method: 'POST',
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
       const exportDuration = Date.now() - exportStartTime;
       console.log(`[UntraceExporter] Export successful in ${exportDuration}ms`);
-      console.log(
-        `[UntraceExporter] Traces processed: ${result.tracesProcessed}`,
-      );
+      console.log(`[UntraceExporter] Response: ${JSON.stringify(result)}`);
       resultCallback({ code: ExportResultCode.SUCCESS });
     } catch (error) {
       const exportDuration = Date.now() - exportStartTime;

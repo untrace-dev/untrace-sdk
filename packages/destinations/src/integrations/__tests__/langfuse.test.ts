@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test';
-import type { TraceType } from '@untrace/db/schema';
+import type { TraceType } from '../../db-types';
 import { LangfuseIntegration } from '../langfuse';
 
 describe('LangfuseIntegration', () => {

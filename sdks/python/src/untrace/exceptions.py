@@ -1,11 +1,13 @@
 """Custom exceptions for the Untrace SDK."""
 
 from typing import Optional
+
 import httpx
 
 
 class UntraceError(Exception):
     """Base exception for all Untrace SDK errors."""
+
     pass
 
 
