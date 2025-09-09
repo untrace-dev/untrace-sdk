@@ -1,4 +1,4 @@
-# @untrace/sdk
+# @untrace/sdk-python
 
 ## 0.1.1
 
