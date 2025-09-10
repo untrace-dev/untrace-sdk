@@ -24,7 +24,7 @@ class UntraceClient:
     def __init__(
         self,
         api_key: str,
-        base_url: str = "https://api.untrace.dev",
+        base_url: str = "https://untrace.dev",
         timeout: float = 30.0,
     ):
         """Initialize the Untrace client.
