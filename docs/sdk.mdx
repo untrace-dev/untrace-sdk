@@ -1,6 +1,6 @@
 ---
 title: SDK Reference
-description: "JavaScript/TypeScript SDK for LLM observability - instrument once, observe everywhere"
+description: "Multi-language SDKs for LLM observability - instrument once, observe everywhere"
 ---
 
 <img
@@ -17,6 +17,59 @@ description: "JavaScript/TypeScript SDK for LLM observability - instrument once,
 ## Overview
 
 The Untrace SDK provides zero-latency LLM observability with automatic instrumentation for all major LLM providers. Built on OpenTelemetry standards, it captures comprehensive trace data and routes it to your chosen observability platforms.
+
+## Supported Languages
+
+Untrace provides native SDKs for all major programming languages:
+
+<CardGroup cols={3}>
+  <Card
+    title="JavaScript/TypeScript"
+    icon="code"
+    href="#javascript-typescript"
+  >
+    Node.js, React, Next.js, Express, and more
+  </Card>
+  <Card
+    title="Python"
+    icon="python"
+    href="/sdk-python"
+  >
+    FastAPI, Django, Flask, and async frameworks
+  </Card>
+  <Card
+    title="Go"
+    icon="golang"
+    href="/sdk-go"
+  >
+    Gin, Echo, Fiber, and microservices
+  </Card>
+  <Card
+    title="Rust"
+    icon="rust"
+    href="/sdk-rust"
+  >
+    Axum, Actix, Tokio, and high-performance apps
+  </Card>
+  <Card
+    title="C#/.NET"
+    icon="csharp"
+    href="/sdk-csharp"
+  >
+    ASP.NET Core, Console apps, and services
+  </Card>
+  <Card
+    title="Elixir"
+    icon="elixir"
+    href="/sdk-elixir"
+  >
+    Phoenix, LiveView, and OTP applications
+  </Card>
+</CardGroup>
+
+<Note>
+**New to Untrace?** Check out our [SDK Overview](/sdk-overview) to compare all available languages and choose the best fit for your project.
+</Note>
 
 <CardGroup cols={2}>
   <Card
@@ -49,7 +102,9 @@ The Untrace SDK provides zero-latency LLM observability with automatic instrumen
   </Card>
 </CardGroup>
 
-## Installation
+## JavaScript/TypeScript
+
+### Installation
 
 Install the Untrace SDK using your preferred package manager:
 
@@ -825,6 +880,363 @@ const client = new LangSmithClient();
 import { init } from '@untrace/sdk';
 init({ apiKey: 'your-api-key' });
 // Traces automatically sent to configured platforms
+```
+
+## Python
+
+### Installation
+
+```bash
+pip install untrace-sdk
+```
+
+### Quick Start
+
+```python
+import asyncio
+from untrace import UntraceClient
+
+async def main():
+    # Initialize the client
+    async with UntraceClient(api_key="your-api-key") as client:
+        # Send a trace event
+        trace = await client.trace(
+            event_type="llm_call",
+            data={
+                "model": "gpt-4",
+                "prompt": "Hello, world!",
+                "response": "Hello! How can I help you today?",
+                "tokens_used": 25,
+            },
+            metadata={
+                "user_id": "user123",
+                "session_id": "session456",
+            }
+        )
+        print(f"Trace created: {trace.id}")
+
+# Run the async function
+asyncio.run(main())
+```
+
+### Synchronous Usage
+
+```python
+from untrace import UntraceClient
+
+# Initialize the client
+client = UntraceClient(api_key="your-api-key")
+
+# Send a trace event
+trace = client.trace_sync(
+    event_type="llm_call",
+    data={
+        "model": "gpt-4",
+        "prompt": "Hello, world!",
+        "response": "Hello! How can I help you today?",
+    }
+)
+
+print(f"Trace created: {trace.id}")
+
+# Don't forget to close the client
+client.close()
+```
+
+### Framework Integration
+
+#### FastAPI
+
+```python
+from fastapi import FastAPI
+from untrace import UntraceClient
+
+app = FastAPI()
+client = UntraceClient(api_key="your-api-key")
+
+@app.post("/chat")
+async def chat_endpoint(request: dict):
+    trace = await client.trace(
+        event_type="llm_call",
+        data={
+            "model": "gpt-4",
+            "prompt": request["message"],
+            "response": "Generated response",
+        }
+    )
+    return {"response": "Generated response", "trace_id": trace.id}
+```
+
+#### Django
+
+```python
+# settings.py
+UNTRACE_API_KEY = "your-api-key"
+
+# views.py
+from django.http import JsonResponse
+from untrace import UntraceClient
+
+def chat_view(request):
+    client = UntraceClient(api_key=settings.UNTRACE_API_KEY)
+
+    trace = client.trace_sync(
+        event_type="llm_call",
+        data={"model": "gpt-4", "prompt": request.POST["message"]}
+    )
+
+    return JsonResponse({"trace_id": trace.id})
+```
+
+## Go
+
+### Installation
+
+```bash
+go get github.com/untrace-dev/untrace-sdk-go
+```
+
+### Quick Start
+
+```go
+package main
+
+import (
+    "context"
+    "log"
+
+    "github.com/untrace-dev/untrace-sdk-go"
+)
+
+func main() {
+    // Initialize the SDK
+    client, err := untrace.Init(untrace.Config{
+        APIKey: "your-api-key",
+        ServiceName: "my-llm-app",
+        Environment: "production",
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer client.Shutdown(context.Background())
+
+    // Create a span for an LLM operation
+    ctx, span := client.Tracer().StartLLMSpan(context.Background(), "chat-completion", untrace.LLMSpanOptions{
+        Provider: "openai",
+        Model: "gpt-3.5-turbo",
+        Operation: "chat",
+    })
+    defer span.End()
+
+    // Your LLM code here
+    // The span will automatically capture timing and context
+}
+```
+
+### Gin Framework
+
+```go
+package main
+
+import (
+    "github.com/gin-gonic/gin"
+    "github.com/untrace-dev/untrace-sdk-go"
+)
+
+func main() {
+    client, _ := untrace.Init(untrace.Config{APIKey: "your-api-key"})
+    defer client.Shutdown(context.Background())
+
+    r := gin.Default()
+
+    r.POST("/chat", func(c *gin.Context) {
+        ctx, span := client.Tracer().StartLLMSpan(c.Request.Context(), "chat", untrace.LLMSpanOptions{
+            Provider: "openai",
+            Model: "gpt-4",
+        })
+        defer span.End()
+
+        // Your LLM logic here
+        c.JSON(200, gin.H{"message": "success"})
+    })
+
+    r.Run()
+}
+```
+
+## Rust
+
+### Installation
+
+Add this to your `Cargo.toml`:
+
+```toml
+[dependencies]
+untrace-sdk = "0.1.2"
+```
+
+### Quick Start
+
+```rust
+use untrace::{init, Config};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Initialize the SDK
+    let config = Config::new("your-api-key".to_string());
+    let untrace = init(config).await?;
+
+    // Create a span
+    let span = untrace.tracer().start_span("my-operation");
+    // ... your code here ...
+    span.end();
+
+    // Shutdown
+    untrace.shutdown().await?;
+    Ok(())
+}
+```
+
+### Axum Framework
+
+```rust
+use axum::{extract::State, response::Json, routing::post, Router};
+use untrace::{init, Config};
+
+#[tokio::main]
+async fn main() {
+    let untrace = init(Config::new("your-api-key".to_string())).await.unwrap();
+
+    let app = Router::new()
+        .route("/chat", post(chat_handler))
+        .with_state(untrace);
+
+    axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
+}
+
+async fn chat_handler(State(untrace): State<Untrace>, Json(payload): Json<ChatRequest>) -> Json<ChatResponse> {
+    let span = untrace.tracer().start_span("chat");
+    // Your LLM logic here
+    span.end();
+
+    Json(ChatResponse { message: "success" })
+}
+```
+
+## C#/.NET
+
+### Installation
+
+```bash
+dotnet add package Untrace.Sdk
+```
+
+### Quick Start
+
+```csharp
+using Untrace;
+
+// Initialize the SDK
+var config = new UntraceConfig
+{
+    ApiKey = "your-api-key",
+    ServiceName = "my-llm-app",
+    Environment = "production"
+};
+
+using var untrace = UntraceSdk.Init(config);
+
+// Create activities for tracing
+using var activity = untrace.StartActivity("my-operation");
+activity?.SetTag("user.id", "user123");
+
+// Your LLM code is automatically traced!
+```
+
+### ASP.NET Core
+
+```csharp
+// Program.cs
+using Untrace;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add Untrace SDK
+builder.Services.AddUntrace(config =>
+{
+    config.ApiKey = builder.Configuration["Untrace:ApiKey"];
+    config.ServiceName = "my-web-api";
+    config.Environment = builder.Environment.EnvironmentName;
+});
+
+var app = builder.Build();
+
+// Controllers are automatically instrumented
+app.MapControllers();
+app.Run();
+```
+
+## Elixir
+
+### Installation
+
+Add `untrace_sdk` to your list of dependencies in `mix.exs`:
+
+```elixir
+def deps do
+  [
+    {:untrace_sdk, "~> 0.1.2"}
+  ]
+end
+```
+
+### Quick Start
+
+```elixir
+# Initialize the client
+{:ok, client} = Untrace.Client.start_link(api_key: "your-api-key")
+
+# Send a trace event
+{:ok, trace} = Untrace.Client.trace(client, %{
+  event_type: "llm_call",
+  data: %{
+    model: "gpt-4",
+    prompt: "Hello, world!",
+    response: "Hello! How can I help you today?",
+    tokens_used: 25
+  },
+  metadata: %{
+    user_id: "user123",
+    session_id: "session456"
+  }
+})
+
+IO.puts("Trace created: #{trace.id}")
+```
+
+### Phoenix Framework
+
+```elixir
+# lib/my_app_web/controllers/chat_controller.ex
+defmodule MyAppWeb.ChatController do
+  use MyAppWeb, :controller
+
+  def create(conn, %{"message" => message}) do
+    {:ok, trace} = Untrace.Client.trace(:untrace_client, %{
+      event_type: "llm_call",
+      data: %{
+        model: "gpt-4",
+        prompt: message,
+        response: "Generated response"
+      }
+    })
+
+    json(conn, %{response: "Generated response", trace_id: trace.id})
+  end
+end
 ```
 
 ## Support

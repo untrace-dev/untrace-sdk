@@ -13,6 +13,7 @@ Untrace is a middleware service that captures LLM trace events from your applica
 ### Why Untrace?
 
 - **🔌 Single Integration**: Integrate once, send traces everywhere
+- **🌐 Multi-Language Support**: Native SDKs for 6+ programming languages
 - **🔀 Intelligent Routing**: Route traces based on model, cost, errors, or custom rules
 - **🔄 No Vendor Lock-in**: Switch between observability platforms without code changes
 - **📊 Unified Analytics**: Get insights across all your observability tools
@@ -32,6 +33,87 @@ Your LLM App → Untrace → Multiple Observability Platforms
 ```
 
 ## 🚀 Quick Start
+
+### Multi-Language SDK Support
+
+Untrace provides native SDKs for all major programming languages:
+
+| Language | Installation | Quick Start |
+|----------|-------------|-------------|
+| **JavaScript/TypeScript** | `npm install @untrace/sdk` | [Docs](https://docs.untrace.dev/sdk) |
+| **Python** | `pip install untrace-sdk` | [Docs](https://docs.untrace.dev/sdk-python) |
+| **Go** | `go get github.com/untrace-dev/untrace-sdk-go` | [Docs](https://docs.untrace.dev/sdk-go) |
+| **Rust** | `cargo add untrace-sdk` | [Docs](https://docs.untrace.dev/sdk-rust) |
+| **C#/.NET** | `dotnet add package Untrace.Sdk` | [Docs](https://docs.untrace.dev/sdk-csharp) |
+| **Elixir** | `{:untrace_sdk, "~> 0.1.2"}` | [Docs](https://docs.untrace.dev/sdk-elixir) |
+
+### JavaScript/TypeScript Example
+
+```typescript
+import { init } from '@untrace/sdk';
+
+// Initialize the SDK
+const untrace = init({
+  apiKey: 'your-api-key',
+  serviceName: 'my-llm-app',
+});
+
+// Your LLM code is automatically instrumented!
+import OpenAI from 'openai';
+const openai = new OpenAI();
+const response = await openai.chat.completions.create({
+  model: 'gpt-4',
+  messages: [{ role: 'user', content: 'Hello!' }],
+});
+```
+
+### Python Example
+
+```python
+import asyncio
+from untrace import UntraceClient
+
+async def main():
+    async with UntraceClient(api_key="your-api-key") as client:
+        trace = await client.trace(
+            event_type="llm_call",
+            data={
+                "model": "gpt-4",
+                "prompt": "Hello, world!",
+                "response": "Hello! How can I help you today?",
+            }
+        )
+        print(f"Trace created: {trace.id}")
+
+asyncio.run(main())
+```
+
+### Go Example
+
+```go
+package main
+
+import (
+    "context"
+    "github.com/untrace-dev/untrace-sdk-go"
+)
+
+func main() {
+    client, _ := untrace.Init(untrace.Config{
+        APIKey: "your-api-key",
+        ServiceName: "my-llm-app",
+    })
+    defer client.Shutdown(context.Background())
+
+    ctx, span := client.Tracer().StartLLMSpan(context.Background(), "chat", untrace.LLMSpanOptions{
+        Provider: "openai",
+        Model: "gpt-4",
+    })
+    defer span.End()
+
+    // Your LLM code here
+}
+```
 
 ### Using the OpenAI Proxy
 
@@ -54,36 +136,28 @@ response = client.chat.completions.create(
 )
 ```
 
-### Using the SDK
-
-```python
-from untrace import Untrace
-
-# Initialize
-tracer = Untrace(api_key="your-api-key")
-
-# Trace any LLM call
-with tracer.trace() as span:
-    response = your_llm_call()
-    span.set_output(response)
-```
-
 ## 📚 Documentation
 
-- [Getting Started Guide](docs/getting-started.md)
-- [API Reference](docs/api-reference.md)
-- [Integration Guides](docs/integrations/)
-- [Architecture Overview](ARCHITECTURE.md)
+- [SDK Overview](https://docs.untrace.dev/sdk-overview) - Compare all available languages
+- [JavaScript/TypeScript SDK](https://docs.untrace.dev/sdk) - Node.js, React, Next.js
+- [Python SDK](https://docs.untrace.dev/sdk-python) - FastAPI, Django, Flask
+- [Go SDK](https://docs.untrace.dev/sdk-go) - Gin, Echo, Fiber
+- [Rust SDK](https://docs.untrace.dev/sdk-rust) - Axum, Actix, Tokio
+- [C#/.NET SDK](https://docs.untrace.dev/sdk-csharp) - ASP.NET Core, Console apps
+- [Elixir SDK](https://docs.untrace.dev/sdk-elixir) - Phoenix, LiveView, OTP
+- [API Reference](https://docs.untrace.dev/api-reference)
+- [Architecture Overview](https://docs.untrace.dev/architecture)
 
 ## 🎯 Features
 
 ### Core Features
 - ✅ OpenAI-compatible proxy endpoint
-- ✅ Native SDKs (Python, TypeScript)
+- ✅ **6 Native SDKs** (JavaScript/TypeScript, Python, Go, Rust, C#/.NET, Elixir)
 - ✅ 10+ platform integrations
 - ✅ Rule-based routing
 - ✅ Real-time monitoring dashboard
 - ✅ Cost tracking and optimization
+- ✅ Framework-specific integrations (React, Next.js, FastAPI, Django, Gin, Axum, ASP.NET Core, Phoenix)
 
 ### Routing Features
 - Route by model type (GPT-4, Claude, etc.)
@@ -140,42 +214,48 @@ npm run dev
 ### Project Structure
 
 ```
-untrace/
-├── apps/
-│   ├── api/           # Main API service
-│   ├── dashboard/     # Web dashboard
-│   └── docs/          # Documentation site
-├── packages/
-│   ├── sdk-python/    # Python SDK
-│   ├── sdk-typescript/# TypeScript SDK
-│   ├── types/         # Shared types
-│   └── connectors/    # Platform connectors
-├── infrastructure/
-│   ├── k8s/          # Kubernetes configs
-│   └── terraform/    # Infrastructure as code
-└── docs/             # Documentation
+untrace-sdk/
+├── docs/              # Documentation site
+├── sdks/              # Language-specific SDKs
+│   ├── js/            # JavaScript/TypeScript SDK
+│   ├── python/        # Python SDK
+│   ├── go/            # Go SDK
+│   ├── rust/          # Rust SDK
+│   ├── csharp/        # C#/.NET SDK
+│   └── elixir/        # Elixir SDK
+├── packages/          # Shared packages
+│   ├── analytics/     # Analytics components
+│   ├── destinations/  # Platform connectors
+│   ├── logger/        # Logging utilities
+│   ├── ui/            # UI components
+│   └── utils/         # Shared utilities
+├── tooling/           # Development tools
+└── integ-tests/       # Integration tests
 ```
 
 ## 🗺️ Roadmap
 
 ### Phase 1: MVP (Q1 2025)
 - [x] Core architecture design
+- [x] **6 Native SDKs** (JavaScript/TypeScript, Python, Go, Rust, C#/.NET, Elixir)
+- [x] Comprehensive documentation
 - [ ] OpenAI proxy implementation
 - [ ] 3 platform integrations
 - [ ] Basic web dashboard
-- [ ] Documentation
 
 ### Phase 2: Growth (Q2 2025)
 - [ ] 5 additional integrations
 - [ ] Advanced routing rules
 - [ ] Analytics dashboard
 - [ ] Enterprise features
+- [ ] Additional language SDKs (Java, Swift, Kotlin)
 
 ### Phase 3: Scale (Q3-Q4 2025)
 - [ ] AI-powered routing
 - [ ] Real-time analytics
 - [ ] Compliance certifications
 - [ ] Global deployment
+- [ ] Mobile SDKs (React Native, Flutter)
 
 ## 🤝 Contributing
 
@@ -190,10 +270,12 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ## 📊 Status
 
-This project is currently in the **planning phase**. We're actively working on:
-- Finalizing the architecture
-- Building the MVP
-- Gathering feedback from potential users
+This project is currently in **active development**. We have:
+- ✅ **6 Native SDKs** with comprehensive documentation
+- ✅ Multi-language support (JavaScript/TypeScript, Python, Go, Rust, C#/.NET, Elixir)
+- ✅ Framework-specific integrations
+- 🔄 Building the core platform and integrations
+- 🔄 Gathering feedback from early adopters
 
 ## 📝 License
 

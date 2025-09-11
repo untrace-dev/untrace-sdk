@@ -1,0 +1,926 @@
+---
+title: C#/.NET SDK
+description: "C#/.NET SDK for LLM observability - instrument once, observe everywhere"
+---
+
+<img
+  className="block dark:hidden"
+  src="/images/sdk-light.png"
+  alt="Untrace C# SDK Light"
+/>
+<img
+  className="hidden dark:block"
+  src="/images/sdk-dark.png"
+  alt="Untrace C# SDK Dark"
+/>
+
+## Overview
+
+The Untrace C#/.NET SDK provides zero-latency LLM observability with automatic instrumentation for all major LLM providers. Built on OpenTelemetry standards, it captures comprehensive trace data and routes it to your chosen observability platforms.
+
+<CardGroup cols={2}>
+  <Card
+    title="Quick Start"
+    icon="rocket"
+    href="#quick-start"
+  >
+    Start tracing LLM calls in minutes
+  </Card>
+  <Card
+    title="Framework Support"
+    icon="magic"
+    href="#framework-integration"
+  >
+    ASP.NET Core, Console apps, and services
+  </Card>
+  <Card
+    title="Dependency Injection"
+    icon="zap"
+    href="#dependency-injection"
+  >
+    Built-in DI support for .NET applications
+  </Card>
+  <Card
+    title="Examples"
+    icon="code"
+    href="#examples"
+  >
+    Real-world examples and best practices
+  </Card>
+</CardGroup>
+
+## Installation
+
+Install the Untrace .NET SDK using the .NET CLI:
+
+```bash
+dotnet add package Untrace.Sdk
+```
+
+Or via Package Manager:
+
+```
+Install-Package Untrace.Sdk
+```
+
+Or via PackageReference in your `.csproj`:
+
+```xml
+<PackageReference Include="Untrace.Sdk" Version="0.1.2" />
+```
+
+## Quick Start
+
+### Basic Setup
+
+```csharp
+using Untrace;
+
+// Initialize the SDK
+var config = new UntraceConfig
+{
+    ApiKey = "your-api-key",
+    ServiceName = "my-llm-app",
+    Environment = "production"
+};
+
+using var untrace = UntraceSdk.Init(config);
+
+// Create activities for tracing
+using var activity = untrace.StartActivity("my-operation");
+activity?.SetTag("user.id", "user123");
+
+// Your LLM code is automatically traced!
+```
+
+### Legacy Client Usage
+
+```csharp
+using Untrace;
+
+// Initialize the client
+using var client = new UntraceClient("your-api-key");
+
+// Send a trace event
+var trace = await client.TraceAsync(
+    eventType: "llm_call",
+    data: new Dictionary<string, object>
+    {
+        ["model"] = "gpt-4",
+        ["prompt"] = "Hello, world!",
+        ["response"] = "Hello! How can I help you today?",
+        ["tokens_used"] = 25
+    },
+    metadata: new Dictionary<string, object>
+    {
+        ["user_id"] = "user123",
+        ["session_id"] = "session456"
+    }
+);
+
+Console.WriteLine($"Trace created: {trace.Id}");
+```
+
+## Configuration
+
+### Configuration Options
+
+```csharp
+var config = new UntraceConfig
+{
+    // Required
+    ApiKey = "your-api-key",
+
+    // Optional
+    BaseUrl = "https://api.untrace.dev",           // Custom API endpoint
+    ServiceName = "untrace-app",                   // Service name
+    Environment = "production",                     // Environment name
+    Version = "1.0.0",                            // Service version
+    Debug = false,                                 // Enable debug logging
+    DisableAutoInstrumentation = false,            // Disable auto-instrumentation
+    CaptureBody = true,                            // Capture request/response bodies
+    CaptureErrors = true,                          // Capture and report errors
+    SamplingRate = 1.0,                           // Sampling rate (0.0 to 1.0)
+    MaxBatchSize = 512,                           // Max spans per batch
+    ExportIntervalMs = 5000,                      // Export interval in milliseconds
+    Providers = new List<string> { "all" },       // Providers to instrument
+    Headers = new Dictionary<string, string>(),   // Custom headers
+    ResourceAttributes = new Dictionary<string, object>() // Additional attributes
+};
+```
+
+### Environment Variables
+
+The SDK respects these environment variables:
+
+```bash
+# Core settings
+UNTRACE_API_KEY=your-api-key
+UNTRACE_BASE_URL=https://api.untrace.dev
+UNTRACE_DEBUG=true
+
+# OpenTelemetry settings
+OTEL_SERVICE_NAME=my-service
+OTEL_RESOURCE_ATTRIBUTES=environment=production,version=1.0.0
+```
+
+### Configuration from appsettings.json
+
+```json
+{
+  "Untrace": {
+    "ApiKey": "your-api-key",
+    "ServiceName": "my-app",
+    "Environment": "production",
+    "Debug": false,
+    "SamplingRate": 0.1
+  }
+}
+```
+
+```csharp
+// In Program.cs or Startup.cs
+var config = new UntraceConfig();
+configuration.GetSection("Untrace").Bind(config);
+```
+
+## Framework Integration
+
+### ASP.NET Core
+
+```csharp
+// Program.cs
+using Untrace;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add Untrace SDK
+builder.Services.AddUntrace(config =>
+{
+    config.ApiKey = builder.Configuration["Untrace:ApiKey"];
+    config.ServiceName = "my-web-api";
+    config.Environment = builder.Environment.EnvironmentName;
+});
+
+var app = builder.Build();
+
+// Controllers are automatically instrumented
+app.MapControllers();
+app.Run();
+```
+
+```csharp
+// Controllers/ChatController.cs
+[ApiController]
+[Route("api/[controller]")]
+public class ChatController : ControllerBase
+{
+    private readonly Untrace _untrace;
+
+    public ChatController(Untrace untrace)
+    {
+        _untrace = untrace;
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Chat([FromBody] ChatRequest request)
+    {
+        using var activity = _untrace.StartLLMActivity(
+            operation: "chat",
+            provider: "openai",
+            model: "gpt-3.5-turbo"
+        );
+
+        try
+        {
+            // Your LLM logic here
+            var response = await CallOpenAI(request.Message);
+
+            activity?.SetTag("llm.response", response);
+            return Ok(new { response });
+        }
+        catch (Exception ex)
+        {
+            _untrace.RecordException(ex);
+            throw;
+        }
+    }
+}
+```
+
+### Console Applications
+
+```csharp
+using Untrace;
+
+class Program
+{
+    static async Task Main(string[] args)
+    {
+        var config = new UntraceConfig
+        {
+            ApiKey = Environment.GetEnvironmentVariable("UNTRACE_API_KEY"),
+            ServiceName = "console-app",
+            Environment = "production"
+        };
+
+        using var untrace = UntraceSdk.Init(config);
+
+        using var activity = untrace.StartActivity("main-operation");
+
+        // Your application logic here
+        await ProcessData();
+
+        activity?.SetTag("status", "completed");
+    }
+}
+```
+
+### Background Services
+
+```csharp
+public class LLMProcessingService : BackgroundService
+{
+    private readonly Untrace _untrace;
+    private readonly ILogger<LLMProcessingService> _logger;
+
+    public LLMProcessingService(Untrace untrace, ILogger<LLMProcessingService> logger)
+    {
+        _untrace = untrace;
+        _logger = logger;
+    }
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            using var activity = _untrace.StartActivity("process-queue");
+
+            try
+            {
+                // Process LLM requests from queue
+                await ProcessQueueItems();
+            }
+            catch (Exception ex)
+            {
+                _untrace.RecordException(ex);
+                _logger.LogError(ex, "Error processing queue");
+            }
+
+            await Task.Delay(1000, stoppingToken);
+        }
+    }
+}
+```
+
+### gRPC Services
+
+```csharp
+using Grpc.Core;
+using Untrace;
+
+public class ChatService : Chat.ChatBase
+{
+    private readonly Untrace _untrace;
+
+    public ChatService(Untrace untrace)
+    {
+        _untrace = untrace;
+    }
+
+    public override async Task<ChatResponse> SendMessage(
+        ChatRequest request,
+        ServerCallContext context)
+    {
+        using var activity = _untrace.StartLLMActivity(
+            operation: "grpc-chat",
+            provider: "openai",
+            model: "gpt-4"
+        );
+
+        activity?.SetTag("grpc.method", "SendMessage");
+        activity?.SetTag("user.id", request.UserId);
+
+        try
+        {
+            // Your LLM logic here
+            var response = await ProcessMessage(request.Message);
+
+            activity?.SetTag("llm.response", response);
+            return new ChatResponse { Message = response };
+        }
+        catch (Exception ex)
+        {
+            _untrace.RecordException(ex);
+            throw;
+        }
+    }
+}
+```
+
+## Advanced Usage
+
+### LLM Activity Tracing
+
+```csharp
+using var llmActivity = untrace.StartLLMActivity(
+    operation: "chat",
+    provider: "openai",
+    model: "gpt-4",
+    attributes: new Dictionary<string, object>
+    {
+        ["llm.prompt"] = "What is the meaning of life?",
+        ["llm.response"] = "42"
+    }
+);
+
+// Record token usage
+var tokenUsage = new TokenUsage
+{
+    PromptTokens = 150,
+    CompletionTokens = 50,
+    TotalTokens = 200,
+    Model = "gpt-4",
+    Provider = "openai"
+};
+untrace.RecordTokenUsage(tokenUsage);
+
+// Record cost
+var cost = new Cost
+{
+    Prompt = 0.0015m,
+    Completion = 0.002m,
+    Total = 0.0035m,
+    Model = "gpt-4",
+    Provider = "openai"
+};
+untrace.RecordCost(cost);
+```
+
+### Activity Extensions
+
+```csharp
+using var activity = untrace.StartActivity("my-operation");
+
+// Set LLM attributes
+var llmAttributes = new LLMSpanAttributes
+{
+    Provider = "openai",
+    Model = "gpt-4",
+    Operation = "chat",
+    PromptTokens = 100,
+    CompletionTokens = 50,
+    TotalTokens = 150,
+    Cost = 0.003m
+};
+activity?.SetLLMAttributes(llmAttributes);
+
+// Set workflow attributes
+var workflowAttributes = new WorkflowAttributes
+{
+    Id = "workflow-123",
+    Name = "customer-support",
+    UserId = "user-456",
+    SessionId = "session-789",
+    Metadata = new Dictionary<string, object>
+    {
+        ["tier"] = "premium",
+        ["region"] = "us-east"
+    }
+};
+activity?.SetWorkflowAttributes(workflowAttributes);
+```
+
+### Custom Metrics
+
+```csharp
+// Record custom metrics
+untrace.RecordMetric("custom.counter", 1, new Dictionary<string, string>
+{
+    ["operation"] = "llm_call",
+    ["model"] = "gpt-4"
+});
+
+untrace.RecordHistogram("custom.duration", 1234.5, new Dictionary<string, string>
+{
+    ["operation"] = "embedding",
+    ["provider"] = "openai"
+});
+
+untrace.RecordGauge("custom.queue_size", 42, new Dictionary<string, string>
+{
+    ["queue"] = "processing"
+});
+```
+
+### Error Handling
+
+```csharp
+using var activity = untrace.StartActivity("risky-operation");
+
+try
+{
+    // Your risky operation here
+    throw new InvalidOperationException("Something went wrong");
+}
+catch (Exception ex)
+{
+    untrace.RecordException(ex);
+    activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+    throw;
+}
+```
+
+## Dependency Injection
+
+### Service Registration
+
+```csharp
+// In Program.cs or Startup.cs
+var builder = WebApplication.CreateBuilder(args);
+
+// Add Untrace SDK with configuration
+builder.Services.AddUntrace(config =>
+{
+    config.ApiKey = builder.Configuration["Untrace:ApiKey"];
+    config.ServiceName = "my-app";
+    config.Environment = builder.Environment.EnvironmentName;
+    config.SamplingRate = 0.1;
+});
+
+// Or with configuration from appsettings.json
+builder.Services.AddUntrace(builder.Configuration.GetSection("Untrace"));
+
+var app = builder.Build();
+```
+
+### Service Usage
+
+```csharp
+public class ChatService
+{
+    private readonly Untrace _untrace;
+    private readonly UntraceClient _client;
+
+    public ChatService(Untrace untrace, UntraceClient client)
+    {
+        _untrace = untrace;
+        _client = client;
+    }
+
+    public async Task<string> ProcessMessage(string message)
+    {
+        using var activity = _untrace.StartLLMActivity(
+            operation: "chat",
+            provider: "openai",
+            model: "gpt-4"
+        );
+
+        // Your LLM logic here
+        return "Generated response";
+    }
+}
+```
+
+### Custom Configuration
+
+```csharp
+public class CustomUntraceConfig : UntraceConfig
+{
+    public string CustomSetting { get; set; }
+}
+
+// Register with custom configuration
+builder.Services.AddUntrace<CustomUntraceConfig>(config =>
+{
+    config.ApiKey = "your-api-key";
+    config.CustomSetting = "custom-value";
+});
+```
+
+## Examples
+
+### OpenAI Integration
+
+```csharp
+using Untrace;
+using OpenAI;
+
+public class OpenAIService
+{
+    private readonly Untrace _untrace;
+    private readonly OpenAIClient _openAI;
+
+    public OpenAIService(Untrace untrace, OpenAIClient openAI)
+    {
+        _untrace = untrace;
+        _openAI = openAI;
+    }
+
+    public async Task<string> ChatAsync(string prompt)
+    {
+        using var activity = _untrace.StartLLMActivity(
+            operation: "chat",
+            provider: "openai",
+            model: "gpt-4"
+        );
+
+        activity?.SetTag("llm.prompt", prompt);
+
+        try
+        {
+            var response = await _openAI.ChatCompletions.CreateAsync(
+                new ChatCompletionCreateRequest
+                {
+                    Messages = new List<ChatMessage>
+                    {
+                        new ChatMessage(ChatMessageRole.User, prompt)
+                    },
+                    Model = "gpt-4",
+                    MaxTokens = 100,
+                    Temperature = 0.7f
+                }
+            );
+
+            var content = response.Choices.First().Message.Content;
+            activity?.SetTag("llm.response", content);
+            activity?.SetTag("llm.tokens", response.Usage.TotalTokens);
+
+            return content;
+        }
+        catch (Exception ex)
+        {
+            _untrace.RecordException(ex);
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            throw;
+        }
+    }
+}
+```
+
+### Batch Processing
+
+```csharp
+public class BatchProcessor
+{
+    private readonly Untrace _untrace;
+
+    public BatchProcessor(Untrace untrace)
+    {
+        _untrace = untrace;
+    }
+
+    public async Task ProcessBatchAsync(List<string> prompts)
+    {
+        using var batchActivity = _untrace.StartActivity("batch-processing");
+        batchActivity?.SetTag("batch.size", prompts.Count);
+
+        var tasks = prompts.Select((prompt, index) =>
+            ProcessPromptAsync(prompt, index)).ToArray();
+
+        await Task.WhenAll(tasks);
+    }
+
+    private async Task ProcessPromptAsync(string prompt, int index)
+    {
+        using var activity = _untrace.StartLLMActivity(
+            operation: "chat",
+            provider: "openai",
+            model: "gpt-4"
+        );
+
+        activity?.SetTag("batch.index", index);
+        activity?.SetTag("llm.prompt", prompt);
+
+        try
+        {
+            // Process the prompt
+            var response = await CallLLM(prompt);
+            activity?.SetTag("llm.response", response);
+        }
+        catch (Exception ex)
+        {
+            _untrace.RecordException(ex);
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+        }
+    }
+}
+```
+
+### Middleware Integration
+
+```csharp
+public class TracingMiddleware
+{
+    private readonly RequestDelegate _next;
+    private readonly Untrace _untrace;
+
+    public TracingMiddleware(RequestDelegate next, Untrace untrace)
+    {
+        _next = next;
+        _untrace = untrace;
+    }
+
+    public async Task InvokeAsync(HttpContext context)
+    {
+        using var activity = _untrace.StartActivity("http-request");
+
+        activity?.SetTag("http.method", context.Request.Method);
+        activity?.SetTag("http.url", context.Request.Path);
+        activity?.SetTag("http.user_agent", context.Request.Headers.UserAgent);
+
+        try
+        {
+            await _next(context);
+            activity?.SetTag("http.status_code", context.Response.StatusCode);
+        }
+        catch (Exception ex)
+        {
+            _untrace.RecordException(ex);
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            throw;
+        }
+    }
+}
+
+// Register middleware
+app.UseMiddleware<TracingMiddleware>();
+```
+
+## Performance
+
+### Sampling
+
+```csharp
+var config = new UntraceConfig
+{
+    ApiKey = "your-api-key",
+    SamplingRate = 0.1, // Sample 10% of requests
+    MaxBatchSize = 100,
+    ExportIntervalMs = 5000
+};
+```
+
+### Async Operations
+
+```csharp
+public async Task<string> ProcessAsync(string input)
+{
+    using var activity = _untrace.StartActivity("process");
+
+    // Async operations are properly traced
+    var result1 = await Step1Async(input);
+    var result2 = await Step2Async(result1);
+    var result3 = await Step3Async(result2);
+
+    return result3;
+}
+```
+
+## Best Practices
+
+### 1. Use Using Statements
+
+```csharp
+// Good: Automatic disposal
+using var activity = untrace.StartActivity("operation");
+// Activity is automatically disposed
+
+// Avoid: Manual disposal (easy to forget)
+var activity = untrace.StartActivity("operation");
+// ... work ...
+activity?.Dispose(); // Easy to forget
+```
+
+### 2. Handle Exceptions Properly
+
+```csharp
+using var activity = untrace.StartActivity("risky-operation");
+
+try
+{
+    // Your operation here
+}
+catch (Exception ex)
+{
+    untrace.RecordException(ex);
+    activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+    throw; // Re-throw if needed
+}
+```
+
+### 3. Use Semantic Tags
+
+```csharp
+activity?.SetTag("user.id", userId);
+activity?.SetTag("user.subscription_tier", "premium");
+activity?.SetTag("feature.name", "advanced-search");
+activity?.SetTag("feature.version", "2.0");
+```
+
+### 4. Initialize Early
+
+```csharp
+// Good: Initialize in Program.cs or Main
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddUntrace(config => { /* ... */ });
+
+// Avoid: Initialize in individual methods
+public void SomeMethod()
+{
+    var untrace = UntraceSdk.Init(config); // Too late
+}
+```
+
+## Troubleshooting
+
+### Common Issues
+
+<AccordionGroup>
+  <Accordion title="No traces appearing">
+    ```csharp
+    // Enable debug mode
+    var config = new UntraceConfig
+    {
+        ApiKey = "your-api-key",
+        Debug = true
+    };
+
+    // Check console for errors
+    ```
+  </Accordion>
+  <Accordion title="High latency">
+    ```csharp
+    // Adjust batching settings
+    var config = new UntraceConfig
+    {
+        ApiKey = "your-api-key",
+        MaxBatchSize = 100,
+        ExportIntervalMs = 10000
+    };
+    ```
+  </Accordion>
+  <Accordion title="Memory usage">
+    ```csharp
+    // Use sampling for high-volume applications
+    var config = new UntraceConfig
+    {
+        ApiKey = "your-api-key",
+        SamplingRate = 0.1
+    };
+    ```
+  </Accordion>
+  <Accordion title="DI registration issues">
+    ```csharp
+    // Make sure to register services before building the app
+    builder.Services.AddUntrace(config => { /* ... */ });
+    var app = builder.Build(); // Register before this line
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## API Reference
+
+### Core Types
+
+```csharp
+public class UntraceConfig
+{
+    public string ApiKey { get; set; }
+    public string BaseUrl { get; set; }
+    public string ServiceName { get; set; }
+    public string Environment { get; set; }
+    public string Version { get; set; }
+    public bool Debug { get; set; }
+    public bool DisableAutoInstrumentation { get; set; }
+    public bool CaptureBody { get; set; }
+    public bool CaptureErrors { get; set; }
+    public double SamplingRate { get; set; }
+    public int MaxBatchSize { get; set; }
+    public int ExportIntervalMs { get; set; }
+    public List<string> Providers { get; set; }
+    public Dictionary<string, string> Headers { get; set; }
+    public Dictionary<string, object> ResourceAttributes { get; set; }
+}
+
+public class TokenUsage
+{
+    public int PromptTokens { get; set; }
+    public int CompletionTokens { get; set; }
+    public int TotalTokens { get; set; }
+    public string Model { get; set; }
+    public string Provider { get; set; }
+}
+
+public class Cost
+{
+    public decimal Prompt { get; set; }
+    public decimal Completion { get; set; }
+    public decimal Total { get; set; }
+    public string Model { get; set; }
+    public string Provider { get; set; }
+}
+```
+
+### Extension Methods
+
+```csharp
+public static class UntraceExtensions
+{
+    public static IServiceCollection AddUntrace(
+        this IServiceCollection services,
+        Action<UntraceConfig> configure);
+
+    public static Activity? StartLLMActivity(
+        this Untrace untrace,
+        string operation,
+        string provider,
+        string model,
+        Dictionary<string, object>? attributes = null);
+
+    public static void SetLLMAttributes(
+        this Activity activity,
+        LLMSpanAttributes attributes);
+}
+```
+
+## Support
+
+- **Documentation**: [https://docs.untrace.dev](https://docs.untrace.dev)
+- **GitHub Issues**: [https://github.com/untrace-dev/untrace/issues](https://github.com/untrace-dev/untrace/issues)
+- **Discord Community**: [Join our Discord](https://discord.gg/untrace)
+- **Email Support**: support@untrace.dev
+
+## Next Steps
+
+<CardGroup>
+  <Card
+    title="Dashboard Guide"
+    icon="gauge"
+    href="/dashboard"
+  >
+    Learn to use the Untrace dashboard
+  </Card>
+  <Card
+    title="Configuration"
+    icon="settings"
+    href="/configuration"
+  >
+    Configure your observability setup
+  </Card>
+  <Card
+    title="Examples"
+    icon="code"
+    href="https://github.com/untrace-dev/examples"
+  >
+    Browse C# example implementations
+  </Card>
+  <Card
+    title="API Reference"
+    icon="book"
+    href="/api-reference"
+  >
+    Complete API documentation
+  </Card>
+</CardGroup>
+

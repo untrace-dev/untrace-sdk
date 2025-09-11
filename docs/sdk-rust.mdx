@@ -1,0 +1,892 @@
+---
+title: Rust SDK
+description: "Rust SDK for LLM observability - instrument once, observe everywhere"
+---
+
+<img
+  className="block dark:hidden"
+  src="/images/sdk-light.png"
+  alt="Untrace Rust SDK Light"
+/>
+<img
+  className="hidden dark:block"
+  src="/images/sdk-dark.png"
+  alt="Untrace Rust SDK Dark"
+/>
+
+## Overview
+
+The Untrace Rust SDK provides zero-latency LLM observability with automatic instrumentation for all major LLM providers. Built on OpenTelemetry standards, it captures comprehensive trace data and routes it to your chosen observability platforms.
+
+<CardGroup cols={2}>
+  <Card
+    title="Quick Start"
+    icon="rocket"
+    href="#quick-start"
+  >
+    Start tracing LLM calls in minutes
+  </Card>
+  <Card
+    title="Framework Support"
+    icon="magic"
+    href="#framework-integration"
+  >
+    Axum, Actix, Tokio, and high-performance apps
+  </Card>
+  <Card
+    title="Performance"
+    icon="zap"
+    href="#performance"
+  >
+    Zero-cost abstractions and async support
+  </Card>
+  <Card
+    title="Examples"
+    icon="code"
+    href="#examples"
+  >
+    Real-world examples and best practices
+  </Card>
+</CardGroup>
+
+## Installation
+
+Add this to your `Cargo.toml`:
+
+```toml
+[dependencies]
+untrace-sdk = "0.1.2"
+tokio = { version = "1.0", features = ["full"] }
+```
+
+## Quick Start
+
+### Basic Setup
+
+```rust
+use untrace::{init, Config};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Initialize the SDK
+    let config = Config::new("your-api-key".to_string());
+    let untrace = init(config).await?;
+
+    // Create a span
+    let span = untrace.tracer().start_span("my-operation");
+    // ... your code here ...
+    span.end();
+
+    // Shutdown
+    untrace.shutdown().await?;
+    Ok(())
+}
+```
+
+### LLM Span Creation
+
+```rust
+use untrace::{init, Config, LLMSpanOptions, LLMOperationType};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let config = Config::new("your-api-key".to_string());
+    let untrace = init(config).await?;
+
+    let options = LLMSpanOptions {
+        provider: "openai".to_string(),
+        model: "gpt-4".to_string(),
+        operation: LLMOperationType::Chat,
+        prompt_tokens: Some(100),
+        completion_tokens: Some(50),
+        total_tokens: Some(150),
+        temperature: Some(0.7),
+        ..Default::default()
+    };
+
+    let span = untrace.tracer().start_llm_span("llm-chat", options);
+    // ... your LLM code here ...
+    span.end();
+
+    untrace.shutdown().await?;
+    Ok(())
+}
+```
+
+## Configuration
+
+### Basic Configuration
+
+```rust
+use untrace::Config;
+
+let config = Config::new("your-api-key".to_string())
+    .with_service_name("my-app".to_string())
+    .with_service_version("1.0.0".to_string())
+    .with_environment("production".to_string())
+    .with_debug(true);
+```
+
+### Environment Variables
+
+You can also configure the SDK using environment variables:
+
+```bash
+export UNTRACE_API_KEY="your-api-key"
+export UNTRACE_SERVICE_NAME="my-app"
+export UNTRACE_SERVICE_VERSION="1.0.0"
+export UNTRACE_ENVIRONMENT="production"
+export UNTRACE_DEBUG="true"
+export UNTRACE_SAMPLING_RATE="0.5"
+```
+
+Then initialize with:
+
+```rust
+use untrace::init_from_env;
+
+let untrace = init_from_env().await?;
+```
+
+### Advanced Configuration
+
+```rust
+use untrace::Config;
+use std::time::Duration;
+
+let config = Config::new("your-api-key".to_string())
+    .with_service_name("my-app".to_string())
+    .with_service_version("1.0.0".to_string())
+    .with_environment("production".to_string())
+    .with_debug(false)
+    .with_sampling_rate(0.1)
+    .with_max_batch_size(100)
+    .with_export_interval(Duration::from_secs(5))
+    .with_base_url("https://api.untrace.dev".to_string());
+```
+
+## Framework Integration
+
+### Axum Framework
+
+```rust
+use axum::{
+    extract::State,
+    response::Json,
+    routing::post,
+    Router,
+};
+use serde::{Deserialize, Serialize};
+use untrace::{init, Config};
+
+#[derive(Deserialize)]
+struct ChatRequest {
+    message: String,
+}
+
+#[derive(Serialize)]
+struct ChatResponse {
+    response: String,
+    trace_id: String,
+}
+
+#[tokio::main]
+async fn main() {
+    let untrace = init(Config::new("your-api-key".to_string())).await.unwrap();
+
+    let app = Router::new()
+        .route("/chat", post(chat_handler))
+        .with_state(untrace);
+
+    axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
+}
+
+async fn chat_handler(
+    State(untrace): State<Untrace>,
+    Json(payload): Json<ChatRequest>
+) -> Json<ChatResponse> {
+    let span = untrace.tracer().start_span("chat");
+
+    // Your LLM logic here
+    let response = "Generated response".to_string();
+
+    span.end();
+
+    Json(ChatResponse {
+        response,
+        trace_id: "trace-123".to_string(),
+    })
+}
+```
+
+### Actix Web Framework
+
+```rust
+use actix_web::{web, App, HttpServer, Result};
+use serde::{Deserialize, Serialize};
+use untrace::{init, Config};
+
+#[derive(Deserialize)]
+struct ChatRequest {
+    message: String,
+}
+
+#[derive(Serialize)]
+struct ChatResponse {
+    response: String,
+    trace_id: String,
+}
+
+async fn chat_handler(
+    payload: web::Json<ChatRequest>,
+    untrace: web::Data<Untrace>,
+) -> Result<web::Json<ChatResponse>> {
+    let span = untrace.tracer().start_span("chat");
+
+    // Your LLM logic here
+    let response = "Generated response".to_string();
+
+    span.end();
+
+    Ok(web::Json(ChatResponse {
+        response,
+        trace_id: "trace-123".to_string(),
+    }))
+}
+
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
+    let untrace = init(Config::new("your-api-key".to_string())).await.unwrap();
+
+    HttpServer::new(move || {
+        App::new()
+            .app_data(web::Data::new(untrace.clone()))
+            .route("/chat", web::post().to(chat_handler))
+    })
+    .bind("127.0.0.1:8080")?
+    .run()
+    .await
+}
+```
+
+### Warp Framework
+
+```rust
+use warp::Filter;
+use untrace::{init, Config};
+
+#[tokio::main]
+async fn main() {
+    let untrace = init(Config::new("your-api-key".to_string())).await.unwrap();
+
+    let untrace_filter = warp::any().map(move || untrace.clone());
+
+    let chat_route = warp::path("chat")
+        .and(warp::post())
+        .and(warp::body::json())
+        .and(untrace_filter)
+        .and_then(chat_handler);
+
+    warp::serve(chat_route)
+        .run(([127, 0, 0, 1], 3030))
+        .await;
+}
+
+async fn chat_handler(
+    request: serde_json::Value,
+    untrace: Untrace,
+) -> Result<impl warp::Reply, warp::Rejection> {
+    let span = untrace.tracer().start_span("chat");
+
+    // Your LLM logic here
+    let response = "Generated response".to_string();
+
+    span.end();
+
+    Ok(warp::reply::json(&serde_json::json!({
+        "response": response,
+        "trace_id": "trace-123"
+    })))
+}
+```
+
+## Advanced Usage
+
+### Workflow Tracking
+
+```rust
+use untrace::{init, Config, WorkflowOptions};
+use std::collections::HashMap;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let config = Config::new("your-api-key".to_string());
+    let untrace = init(config).await?;
+
+    let mut metadata = HashMap::new();
+    metadata.insert("user_id".to_string(), "user123".to_string());
+    metadata.insert("tier".to_string(), "premium".to_string());
+
+    let options = WorkflowOptions {
+        user_id: Some("user123".to_string()),
+        session_id: Some("session456".to_string()),
+        version: Some("1.0.0".to_string()),
+        parent_id: None,
+        metadata,
+    };
+
+    let workflow = untrace.context().start_workflow(
+        "my-workflow".to_string(),
+        untrace.context().generate_run_id(),
+        options,
+    )?;
+
+    // Create a workflow span
+    let span = untrace.tracer().start_workflow_span(&workflow);
+    // ... your workflow code here ...
+    span.end();
+
+    // End the workflow
+    untrace.context().end_current_workflow()?;
+
+    untrace.shutdown().await?;
+    Ok(())
+}
+```
+
+### Metrics Collection
+
+```rust
+use untrace::{init, Config, TokenUsage, Cost};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let config = Config::new("your-api-key".to_string());
+    let untrace = init(config).await?;
+
+    // Record token usage
+    let usage = TokenUsage {
+        prompt_tokens: 100,
+        completion_tokens: 50,
+        total_tokens: 150,
+        model: "gpt-4".to_string(),
+        provider: "openai".to_string(),
+    };
+    untrace.metrics().record_token_usage(usage)?;
+
+    // Record cost
+    let cost = Cost {
+        prompt: 0.01,
+        completion: 0.02,
+        total: 0.03,
+        currency: "USD".to_string(),
+        model: "gpt-4".to_string(),
+        provider: "openai".to_string(),
+    };
+    untrace.metrics().record_cost(cost)?;
+
+    // Record latency
+    let duration = std::time::Duration::from_millis(500);
+    let mut attributes = HashMap::new();
+    attributes.insert("operation".to_string(), "llm_call".to_string());
+    untrace.metrics().record_latency(duration, attributes)?;
+
+    untrace.shutdown().await?;
+    Ok(())
+}
+```
+
+### Custom Attributes
+
+```rust
+use untrace::{init, Config};
+use std::collections::HashMap;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let config = Config::new("your-api-key".to_string());
+    let untrace = init(config).await?;
+
+    let span = untrace.tracer().start_span("custom-operation");
+
+    // Add custom attributes
+    let mut attributes = HashMap::new();
+    attributes.insert("user.id".to_string(), "user-123".to_string());
+    attributes.insert("user.subscription_tier".to_string(), "premium".to_string());
+    attributes.insert("feature.name".to_string(), "advanced-search".to_string());
+    attributes.insert("feature.version".to_string(), "2.0".to_string());
+    attributes.insert("custom.metric".to_string(), "42.5".to_string());
+
+    span.set_attributes(attributes);
+
+    // Your operation logic here
+    span.end();
+
+    untrace.shutdown().await?;
+    Ok(())
+}
+```
+
+### Error Handling
+
+```rust
+use untrace::{init, Config};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let config = Config::new("your-api-key".to_string());
+    let untrace = init(config).await?;
+
+    let span = untrace.tracer().start_span("risky-operation");
+
+    match risky_operation().await {
+        Ok(result) => {
+            span.set_status(Status::Ok, "Operation completed successfully");
+            // Process result
+        }
+        Err(e) => {
+            span.record_error(&e);
+            span.set_status(Status::Error, &e.to_string());
+            eprintln!("Operation failed: {}", e);
+        }
+    }
+
+    span.end();
+    untrace.shutdown().await?;
+    Ok(())
+}
+
+async fn risky_operation() -> Result<String, Box<dyn std::error::Error>> {
+    // Simulate a risky operation
+    if rand::random::<f64>() < 0.5 {
+        Err("Random failure".into())
+    } else {
+        Ok("Success".to_string())
+    }
+}
+```
+
+## Examples
+
+### OpenAI Integration
+
+```rust
+use untrace::{init, Config, LLMSpanOptions, LLMOperationType};
+use serde_json::json;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let config = Config::new("your-api-key".to_string());
+    let untrace = init(config).await?;
+
+    let response = chat_with_tracing(&untrace, "What is the meaning of life?").await?;
+    println!("Response: {}", response);
+
+    untrace.shutdown().await?;
+    Ok(())
+}
+
+async fn chat_with_tracing(
+    untrace: &Untrace,
+    prompt: &str,
+) -> Result<String, Box<dyn std::error::Error>> {
+    let options = LLMSpanOptions {
+        provider: "openai".to_string(),
+        model: "gpt-4".to_string(),
+        operation: LLMOperationType::Chat,
+        ..Default::default()
+    };
+
+    let span = untrace.tracer().start_llm_span("openai-chat", options);
+
+    // Set prompt attribute
+    span.set_attribute("llm.prompt", prompt);
+
+    // Make OpenAI API call (pseudo-code)
+    let response = call_openai(prompt).await?;
+
+    // Set response attributes
+    span.set_attribute("llm.response", &response);
+    span.set_attribute("llm.tokens", 100);
+
+    span.end();
+    Ok(response)
+}
+
+async fn call_openai(prompt: &str) -> Result<String, Box<dyn std::error::Error>> {
+    // Simulate OpenAI API call
+    Ok("The meaning of life is 42.".to_string())
+}
+```
+
+### Batch Processing
+
+```rust
+use untrace::{init, Config, LLMSpanOptions, LLMOperationType};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let config = Config::new("your-api-key".to_string());
+    let untrace = init(config).await?;
+
+    let prompts = vec![
+        "What is AI?",
+        "Explain machine learning",
+        "How does deep learning work?",
+    ];
+
+    for (i, prompt) in prompts.iter().enumerate() {
+        let options = LLMSpanOptions {
+            provider: "openai".to_string(),
+            model: "gpt-4".to_string(),
+            operation: LLMOperationType::Chat,
+            ..Default::default()
+        };
+
+        let span = untrace.tracer().start_llm_span("batch-processing", options);
+
+        span.set_attribute("llm.prompt", prompt);
+        span.set_attribute("batch.index", i as i64);
+        span.set_attribute("batch.total", prompts.len() as i64);
+
+        // Process prompt
+        match process_prompt(prompt).await {
+            Ok(response) => {
+                span.set_attribute("llm.response", &response);
+            }
+            Err(e) => {
+                span.record_error(&e);
+                span.set_status(Status::Error, &e.to_string());
+            }
+        }
+
+        span.end();
+    }
+
+    untrace.shutdown().await?;
+    Ok(())
+}
+
+async fn process_prompt(prompt: &str) -> Result<String, Box<dyn std::error::Error>> {
+    // Simulate processing
+    Ok(format!("Response to: {}", prompt))
+}
+```
+
+### Async Stream Processing
+
+```rust
+use untrace::{init, Config};
+use futures::stream::{self, StreamExt};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let config = Config::new("your-api-key".to_string());
+    let untrace = init(config).await?;
+
+    let items = vec!["item1", "item2", "item3"];
+
+    let results: Vec<_> = stream::iter(items)
+        .map(|item| process_item(&untrace, item))
+        .buffer_unordered(3) // Process up to 3 items concurrently
+        .collect()
+        .await;
+
+    for result in results {
+        match result {
+            Ok(response) => println!("Processed: {}", response),
+            Err(e) => eprintln!("Error: {}", e),
+        }
+    }
+
+    untrace.shutdown().await?;
+    Ok(())
+}
+
+async fn process_item(untrace: &Untrace, item: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let span = untrace.tracer().start_span("process-item");
+    span.set_attribute("item", item);
+
+    // Simulate async processing
+    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
+    let result = format!("Processed: {}", item);
+    span.set_attribute("result", &result);
+    span.end();
+
+    Ok(result)
+}
+```
+
+## Performance
+
+### Zero-Cost Abstractions
+
+The Rust SDK is designed with zero-cost abstractions in mind:
+
+```rust
+// This code has minimal runtime overhead
+let span = untrace.tracer().start_span("operation");
+// ... work ...
+span.end();
+
+// When sampling is disabled, spans are essentially no-ops
+```
+
+### Async Performance
+
+```rust
+use untrace::{init, Config};
+use tokio::task;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let config = Config::new("your-api-key".to_string());
+    let untrace = init(config).await?;
+
+    // Spawn multiple concurrent tasks
+    let handles: Vec<_> = (0..10)
+        .map(|i| {
+            let untrace = untrace.clone();
+            task::spawn(async move {
+                let span = untrace.tracer().start_span(&format!("task-{}", i));
+                // ... work ...
+                span.end();
+            })
+        })
+        .collect();
+
+    // Wait for all tasks to complete
+    for handle in handles {
+        handle.await?;
+    }
+
+    untrace.shutdown().await?;
+    Ok(())
+}
+```
+
+### Memory Management
+
+```rust
+use untrace::{init, Config};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let config = Config::new("your-api-key".to_string())
+        .with_max_batch_size(100) // Limit memory usage
+        .with_export_interval(Duration::from_secs(5)); // Regular cleanup
+
+    let untrace = init(config).await?;
+
+    // Process many operations
+    for i in 0..1000 {
+        let span = untrace.tracer().start_span(&format!("operation-{}", i));
+        // ... work ...
+        span.end();
+    }
+
+    untrace.shutdown().await?;
+    Ok(())
+}
+```
+
+## Best Practices
+
+### 1. Use RAII for Automatic Cleanup
+
+```rust
+// Good: Automatic cleanup with RAII
+{
+    let span = untrace.tracer().start_span("operation");
+    // ... work ...
+    span.end(); // Automatically called when span goes out of scope
+}
+```
+
+### 2. Handle Errors Properly
+
+```rust
+async fn safe_operation(untrace: &Untrace) -> Result<String, Box<dyn std::error::Error>> {
+    let span = untrace.tracer().start_span("safe-operation");
+
+    match risky_operation().await {
+        Ok(result) => {
+            span.set_status(Status::Ok, "Success");
+            span.end();
+            Ok(result)
+        }
+        Err(e) => {
+            span.record_error(&e);
+            span.set_status(Status::Error, &e.to_string());
+            span.end();
+            Err(e)
+        }
+    }
+}
+```
+
+### 3. Use Semantic Attributes
+
+```rust
+span.set_attribute("user.id", "user-123");
+span.set_attribute("user.subscription_tier", "premium");
+span.set_attribute("feature.name", "advanced-search");
+span.set_attribute("feature.version", "2.0");
+```
+
+### 4. Initialize Early
+
+```rust
+// Good: Initialize in main
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let untrace = init(Config::new("your-api-key".to_string())).await?;
+
+    // Rest of your application
+    run_app(untrace).await?;
+
+    untrace.shutdown().await?;
+    Ok(())
+}
+```
+
+## Troubleshooting
+
+### Common Issues
+
+<AccordionGroup>
+  <Accordion title="No traces appearing">
+    ```rust
+    // Enable debug mode
+    let config = Config::new("your-api-key".to_string())
+        .with_debug(true);
+
+    let untrace = init(config).await?;
+    ```
+  </Accordion>
+  <Accordion title="High memory usage">
+    ```rust
+    // Adjust batching settings
+    let config = Config::new("your-api-key".to_string())
+        .with_max_batch_size(50)
+        .with_export_interval(Duration::from_secs(2));
+    ```
+  </Accordion>
+  <Accordion title="Async context issues">
+    ```rust
+    // Make sure to use async/await consistently
+    async fn handler(untrace: &Untrace) -> Result<(), Box<dyn std::error::Error>> {
+        let span = untrace.tracer().start_span("handler");
+        // ... async work ...
+        span.end();
+        Ok(())
+    }
+    ```
+  </Accordion>
+  <Accordion title="Compilation errors">
+    ```rust
+    // Make sure to enable required features in Cargo.toml
+    [dependencies]
+    untrace-sdk = { version = "0.1.2", features = ["tokio"] }
+    tokio = { version = "1.0", features = ["full"] }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## API Reference
+
+### Core Types
+
+```rust
+pub struct Config {
+    pub api_key: String,
+    pub service_name: Option<String>,
+    pub service_version: Option<String>,
+    pub environment: Option<String>,
+    pub debug: bool,
+    pub sampling_rate: f64,
+    pub max_batch_size: usize,
+    pub export_interval: Duration,
+    pub base_url: Option<String>,
+}
+
+pub struct LLMSpanOptions {
+    pub provider: String,
+    pub model: String,
+    pub operation: LLMOperationType,
+    pub prompt_tokens: Option<u32>,
+    pub completion_tokens: Option<u32>,
+    pub total_tokens: Option<u32>,
+    pub temperature: Option<f64>,
+    pub max_tokens: Option<u32>,
+}
+
+pub enum LLMOperationType {
+    Chat,
+    Completion,
+    Embedding,
+    Image,
+    Audio,
+}
+```
+
+### Trait Implementations
+
+```rust
+pub trait Tracer {
+    fn start_span(&self, name: &str) -> Span;
+    fn start_llm_span(&self, name: &str, options: LLMSpanOptions) -> Span;
+}
+
+pub trait Span {
+    fn set_attribute(&self, key: &str, value: &str);
+    fn set_status(&self, code: Status, message: &str);
+    fn record_error(&self, error: &dyn std::error::Error);
+    fn end(self);
+}
+```
+
+## Support
+
+- **Documentation**: [https://docs.untrace.dev](https://docs.untrace.dev)
+- **GitHub Issues**: [https://github.com/untrace-dev/untrace/issues](https://github.com/untrace-dev/untrace/issues)
+- **Discord Community**: [Join our Discord](https://discord.gg/untrace)
+- **Email Support**: support@untrace.dev
+
+## Next Steps
+
+<CardGroup>
+  <Card
+    title="Dashboard Guide"
+    icon="gauge"
+    href="/dashboard"
+  >
+    Learn to use the Untrace dashboard
+  </Card>
+  <Card
+    title="Configuration"
+    icon="settings"
+    href="/configuration"
+  >
+    Configure your observability setup
+  </Card>
+  <Card
+    title="Examples"
+    icon="code"
+    href="https://github.com/untrace-dev/examples"
+  >
+    Browse Rust example implementations
+  </Card>
+  <Card
+    title="API Reference"
+    icon="book"
+    href="/api-reference"
+  >
+    Complete API documentation
+  </Card>
+</CardGroup>
+

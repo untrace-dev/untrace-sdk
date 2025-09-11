@@ -86,6 +86,17 @@
             "pages": ["dashboard", "sdk"]
           },
           {
+            "group": "SDK Reference",
+            "pages": [
+              "sdk-overview",
+              "sdk-python",
+              "sdk-go",
+              "sdk-rust",
+              "sdk-csharp",
+              "sdk-elixir"
+            ]
+          },
+          {
             "group": "Advanced",
             "pages": ["routing", "security", "configuration"]
           },

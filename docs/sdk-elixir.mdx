@@ -1,0 +1,921 @@
+---
+title: Elixir SDK
+description: "Elixir SDK for LLM observability - instrument once, observe everywhere"
+---
+
+<img
+  className="block dark:hidden"
+  src="/images/sdk-light.png"
+  alt="Untrace Elixir SDK Light"
+/>
+<img
+  className="hidden dark:block"
+  src="/images/sdk-dark.png"
+  alt="Untrace Elixir SDK Dark"
+/>
+
+## Overview
+
+The Untrace Elixir SDK provides zero-latency LLM observability with automatic instrumentation for all major LLM providers. Built on OpenTelemetry standards, it captures comprehensive trace data and routes it to your chosen observability platforms.
+
+<CardGroup cols={2}>
+  <Card
+    title="Quick Start"
+    icon="rocket"
+    href="#quick-start"
+  >
+    Start tracing LLM calls in minutes
+  </Card>
+  <Card
+    title="Framework Support"
+    icon="magic"
+    href="#framework-integration"
+  >
+    Phoenix, LiveView, and OTP applications
+  </Card>
+  <Card
+    title="OTP Integration"
+    icon="zap"
+    href="#otp-integration"
+  >
+    Built for Elixir's actor model and supervision trees
+  </Card>
+  <Card
+    title="Examples"
+    icon="code"
+    href="#examples"
+  >
+    Real-world examples and best practices
+  </Card>
+</CardGroup>
+
+## Installation
+
+Add `untrace_sdk` to your list of dependencies in `mix.exs`:
+
+```elixir
+def deps do
+  [
+    {:untrace_sdk, "~> 0.1.2"}
+  ]
+end
+```
+
+Then run:
+
+```bash
+mix deps.get
+```
+
+## Quick Start
+
+### Basic Setup
+
+```elixir
+# Initialize the client
+{:ok, client} = Untrace.Client.start_link(api_key: "your-api-key")
+
+# Send a trace event
+{:ok, trace} = Untrace.Client.trace(client, %{
+  event_type: "llm_call",
+  data: %{
+    model: "gpt-4",
+    prompt: "Hello, world!",
+    response: "Hello! How can I help you today?",
+    tokens_used: 25
+  },
+  metadata: %{
+    user_id: "user123",
+    session_id: "session456"
+  }
+})
+
+IO.puts("Trace created: #{trace.id}")
+
+# Stop the client
+Untrace.Client.stop(client)
+```
+
+### Synchronous Usage
+
+```elixir
+# Initialize the client
+{:ok, client} = Untrace.Client.start_link(api_key: "your-api-key")
+
+# Send a trace event
+{:ok, trace} = Untrace.Client.trace(client, %{
+  event_type: "llm_call",
+  data: %{
+    model: "gpt-4",
+    prompt: "Hello, world!",
+    response: "Hello! How can I help you today?"
+  }
+})
+
+IO.puts("Trace created: #{trace.id}")
+
+# Stop the client
+Untrace.Client.stop(client)
+```
+
+### GenServer Usage
+
+```elixir
+# Start as part of your supervision tree
+children = [
+  {Untrace.Client, api_key: "your-api-key", name: :untrace_client}
+]
+
+Supervisor.start_link(children, strategy: :one_for_one)
+
+# Use the named process
+{:ok, trace} = Untrace.Client.trace(:untrace_client, %{
+  event_type: "llm_call",
+  data: %{model: "gpt-4", prompt: "Hello!"}
+})
+```
+
+## Configuration
+
+### Client Configuration
+
+```elixir
+%{
+  api_key: "your-api-key",           # Required
+  base_url: "https://api.untrace.dev", # Optional, defaults to https://api.untrace.dev
+  timeout: 30_000,                   # Optional, defaults to 30 seconds
+  name: :untrace_client              # Optional, for named process
+}
+```
+
+### Environment Variables
+
+The SDK supports configuration via environment variables:
+
+```bash
+# Core settings
+export UNTRACE_API_KEY="your-api-key"
+export UNTRACE_BASE_URL="https://api.untrace.dev"
+export UNTRACE_DEBUG="true"
+
+# OpenTelemetry settings
+export OTEL_SERVICE_NAME="my-service"
+export OTEL_RESOURCE_ATTRIBUTES="environment=production,version=1.0.0"
+```
+
+### Application Configuration
+
+```elixir
+# config/config.exs
+import Config
+
+config :untrace_sdk,
+  api_key: System.get_env("UNTRACE_API_KEY"),
+  base_url: System.get_env("UNTRACE_BASE_URL", "https://api.untrace.dev"),
+  timeout: String.to_integer(System.get_env("UNTRACE_TIMEOUT", "30000")),
+  debug: System.get_env("UNTRACE_DEBUG") == "true"
+```
+
+## Framework Integration
+
+### Phoenix Framework
+
+```elixir
+# lib/my_app_web/controllers/chat_controller.ex
+defmodule MyAppWeb.ChatController do
+  use MyAppWeb, :controller
+
+  def create(conn, %{"message" => message}) do
+    {:ok, trace} = Untrace.Client.trace(:untrace_client, %{
+      event_type: "llm_call",
+      data: %{
+        model: "gpt-4",
+        prompt: message,
+        response: "Generated response"
+      },
+      metadata: %{
+        user_id: get_session(conn, :user_id),
+        session_id: get_session(conn, :session_id)
+      }
+    })
+
+    json(conn, %{response: "Generated response", trace_id: trace.id})
+  end
+end
+```
+
+### Phoenix LiveView
+
+```elixir
+defmodule MyAppWeb.ChatLive do
+  use MyAppWeb, :live_view
+
+  def handle_event("send_message", %{"message" => message}, socket) do
+    # Trace the user interaction
+    {:ok, trace} = Untrace.Client.trace(:untrace_client, %{
+      event_type: "user_interaction",
+      data: %{
+        action: "send_message",
+        message: message
+      },
+      metadata: %{
+        user_id: socket.assigns.current_user.id,
+        session_id: socket.id
+      }
+    })
+
+    # Process the message
+    response = process_message(message)
+
+    # Trace the LLM response
+    {:ok, llm_trace} = Untrace.Client.trace(:untrace_client, %{
+      event_type: "llm_call",
+      data: %{
+        model: "gpt-4",
+        prompt: message,
+        response: response
+      },
+      metadata: %{
+        parent_trace_id: trace.id,
+        user_id: socket.assigns.current_user.id
+      }
+    })
+
+    {:noreply, assign(socket, :messages, [%{message: message, response: response}])}
+  end
+end
+```
+
+### GenServer Integration
+
+```elixir
+defmodule MyApp.LLMProcessor do
+  use GenServer
+  require Logger
+
+  def start_link(opts) do
+    GenServer.start_link(__MODULE__, opts, name: __MODULE__)
+  end
+
+  def process_message(message) do
+    GenServer.call(__MODULE__, {:process_message, message})
+  end
+
+  def init(opts) do
+    {:ok, %{untrace_client: opts[:untrace_client]}}
+  end
+
+  def handle_call({:process_message, message}, _from, state) do
+    # Start tracing
+    {:ok, trace} = Untrace.Client.trace(state.untrace_client, %{
+      event_type: "llm_processing",
+      data: %{message: message}
+    })
+
+    try do
+      # Process the message
+      response = call_llm_api(message)
+
+      # Update trace with response
+      Untrace.Client.update_trace(state.untrace_client, trace.id, %{
+        response: response,
+        status: "completed"
+      })
+
+      {:reply, {:ok, response}, state}
+    rescue
+      error ->
+        # Record error in trace
+        Untrace.Client.update_trace(state.untrace_client, trace.id, %{
+          error: Exception.message(error),
+          status: "failed"
+        })
+
+        Logger.error("Error processing message: #{Exception.message(error)}")
+        {:reply, {:error, error}, state}
+    end
+  end
+end
+```
+
+### Task Integration
+
+```elixir
+defmodule MyApp.AsyncProcessor do
+  def process_async(messages) do
+    messages
+    |> Enum.map(&Task.async(fn -> process_message(&1) end))
+    |> Task.await_many()
+  end
+
+  defp process_message(message) do
+    {:ok, trace} = Untrace.Client.trace(:untrace_client, %{
+      event_type: "async_llm_call",
+      data: %{message: message}
+    })
+
+    try do
+      response = call_llm_api(message)
+
+      Untrace.Client.update_trace(:untrace_client, trace.id, %{
+        response: response,
+        status: "completed"
+      })
+
+      {:ok, response}
+    rescue
+      error ->
+        Untrace.Client.update_trace(:untrace_client, trace.id, %{
+          error: Exception.message(error),
+          status: "failed"
+        })
+
+        {:error, error}
+    end
+  end
+end
+```
+
+## Advanced Usage
+
+### Custom Trace Attributes
+
+```elixir
+# Create a trace with custom attributes
+{:ok, trace} = Untrace.Client.trace(:untrace_client, %{
+  event_type: "llm_call",
+  data: %{
+    model: "gpt-4",
+    prompt: "What is the meaning of life?",
+    response: "42",
+    tokens_used: 50,
+    temperature: 0.7,
+    max_tokens: 100
+  },
+  metadata: %{
+    user_id: "user123",
+    session_id: "session456",
+    timestamp: DateTime.utc_now() |> DateTime.to_iso8601(),
+    custom_metric: 42.5,
+    feature_flag: "new_ui"
+  }
+})
+```
+
+### Batch Tracing
+
+```elixir
+# Send multiple traces in batch
+traces = [
+  %{
+    event_type: "llm_call",
+    data: %{model: "gpt-4", prompt: "Hello 1"}
+  },
+  %{
+    event_type: "llm_call",
+    data: %{model: "gpt-4", prompt: "Hello 2"}
+  },
+  %{
+    event_type: "llm_call",
+    data: %{model: "gpt-4", prompt: "Hello 3"}
+  }
+]
+
+{:ok, results} = Untrace.Client.trace_batch(:untrace_client, traces)
+IO.puts("Created #{length(results)} traces")
+```
+
+### Error Handling
+
+```elixir
+case Untrace.Client.trace(:untrace_client, trace_data) do
+  {:ok, trace} ->
+    IO.puts("Success: #{trace.id}")
+
+  {:error, :validation_error, message} ->
+    IO.puts("Validation error: #{message}")
+
+  {:error, :api_error, message} ->
+    IO.puts("API error: #{message}")
+
+  {:error, :network_error, reason} ->
+    IO.puts("Network error: #{inspect(reason)}")
+end
+```
+
+### Context Managers
+
+```elixir
+defmodule MyApp.Tracing do
+  def with_trace(event_type, data, metadata \\ %{}, fun) do
+    {:ok, trace} = Untrace.Client.trace(:untrace_client, %{
+      event_type: event_type,
+      data: data,
+      metadata: metadata
+    })
+
+    try do
+      result = fun.()
+      Untrace.Client.update_trace(:untrace_client, trace.id, %{status: "completed"})
+      {:ok, result}
+    rescue
+      error ->
+        Untrace.Client.update_trace(:untrace_client, trace.id, %{
+          error: Exception.message(error),
+          status: "failed"
+        })
+        {:error, error}
+    end
+  end
+end
+
+# Usage
+{:ok, result} = MyApp.Tracing.with_trace("llm_call", %{model: "gpt-4"}, %{}, fn ->
+  call_llm_api("Hello world")
+end)
+```
+
+## Telemetry Integration
+
+The SDK emits telemetry events for monitoring:
+
+```elixir
+# Listen to trace events
+:telemetry.attach(
+  "untrace-trace-sent",
+  [:untrace, :trace, :sent],
+  fn event, measurements, metadata, config ->
+    IO.inspect({event, measurements, metadata, config})
+  end,
+  nil
+)
+
+# Listen to errors
+:telemetry.attach(
+  "untrace-error",
+  [:untrace, :error],
+  fn event, measurements, metadata, config ->
+    IO.inspect({event, measurements, metadata, config})
+  end,
+  nil
+)
+
+# Listen to batch events
+:telemetry.attach(
+  "untrace-batch-sent",
+  [:untrace, :batch, :sent],
+  fn event, measurements, metadata, config ->
+    IO.inspect({event, measurements, metadata, config})
+  end,
+  nil
+)
+```
+
+### Custom Telemetry Handlers
+
+```elixir
+defmodule MyApp.TelemetryHandlers do
+  require Logger
+
+  def handle_trace_sent(event, measurements, metadata, _config) do
+    Logger.info("Trace sent: #{metadata.trace_id}")
+
+    # Send to your monitoring system
+    send_to_monitoring(:trace_sent, measurements, metadata)
+  end
+
+  def handle_error(event, measurements, metadata, _config) do
+    Logger.error("Untrace error: #{metadata.error}")
+
+    # Send to your error tracking system
+    send_to_error_tracking(:untrace_error, measurements, metadata)
+  end
+
+  defp send_to_monitoring(event, measurements, metadata) do
+    # Your monitoring logic here
+  end
+
+  defp send_to_error_tracking(event, measurements, metadata) do
+    # Your error tracking logic here
+  end
+end
+
+# Attach handlers
+:telemetry.attach_many(
+  "my-app-telemetry",
+  [
+    {[:untrace, :trace, :sent], &MyApp.TelemetryHandlers.handle_trace_sent/4},
+    {[:untrace, :error], &MyApp.TelemetryHandlers.handle_error/4}
+  ],
+  nil
+)
+```
+
+## Examples
+
+### OpenAI Integration
+
+```elixir
+defmodule MyApp.OpenAIService do
+  require Logger
+
+  def chat(prompt) do
+    {:ok, trace} = Untrace.Client.trace(:untrace_client, %{
+      event_type: "llm_call",
+      data: %{
+        model: "gpt-4",
+        prompt: prompt
+      }
+    })
+
+    try do
+      # Make OpenAI API call (pseudo-code)
+      response = call_openai_api(prompt)
+
+      # Update trace with response
+      Untrace.Client.update_trace(:untrace_client, trace.id, %{
+        response: response,
+        tokens_used: 100,
+        finish_reason: "stop"
+      })
+
+      {:ok, response}
+    rescue
+      error ->
+        # Record error in trace
+        Untrace.Client.update_trace(:untrace_client, trace.id, %{
+          error: Exception.message(error),
+          error_type: error.__struct__.__name__
+        })
+
+        Logger.error("OpenAI API error: #{Exception.message(error)}")
+        {:error, error}
+    end
+  end
+
+  defp call_openai_api(prompt) do
+    # Your OpenAI API call implementation
+    "Generated response for: #{prompt}"
+  end
+end
+```
+
+### Batch Processing
+
+```elixir
+defmodule MyApp.BatchProcessor do
+  def process_prompts(prompts) do
+    prompts
+    |> Enum.with_index()
+    |> Enum.map(fn {prompt, index} ->
+      Task.async(fn -> process_prompt(prompt, index) end)
+    end)
+    |> Task.await_many()
+  end
+
+  defp process_prompt(prompt, index) do
+    {:ok, trace} = Untrace.Client.trace(:untrace_client, %{
+      event_type: "batch_processing",
+      data: %{
+        model: "gpt-4",
+        prompt: prompt,
+        batch_index: index
+      }
+    })
+
+    try do
+      response = call_llm_api(prompt)
+
+      Untrace.Client.update_trace(:untrace_client, trace.id, %{
+        response: response,
+        status: "completed"
+      })
+
+      {:ok, response}
+    rescue
+      error ->
+        Untrace.Client.update_trace(:untrace_client, trace.id, %{
+          error: Exception.message(error),
+          status: "failed"
+        })
+
+        {:error, error}
+    end
+  end
+end
+```
+
+### Stream Processing
+
+```elixir
+defmodule MyApp.StreamProcessor do
+  def process_stream(stream) do
+    stream
+    |> Stream.map(&process_item/1)
+    |> Stream.run()
+  end
+
+  defp process_item(item) do
+    {:ok, trace} = Untrace.Client.trace(:untrace_client, %{
+      event_type: "stream_processing",
+      data: %{item: item}
+    })
+
+    try do
+      result = process_item_logic(item)
+
+      Untrace.Client.update_trace(:untrace_client, trace.id, %{
+        result: result,
+        status: "completed"
+      })
+
+      result
+    rescue
+      error ->
+        Untrace.Client.update_trace(:untrace_client, trace.id, %{
+          error: Exception.message(error),
+          status: "failed"
+        })
+
+        raise error
+    end
+  end
+
+  defp process_item_logic(item) do
+    # Your processing logic here
+    "Processed: #{item}"
+  end
+end
+```
+
+## OTP Integration
+
+### Supervision Tree
+
+```elixir
+defmodule MyApp.Application do
+  use Application
+
+  def start(_type, _args) do
+    children = [
+      # Start Untrace client
+      {Untrace.Client, api_key: System.get_env("UNTRACE_API_KEY"), name: :untrace_client},
+
+      # Your other children
+      MyApp.LLMProcessor,
+      MyApp.BatchProcessor
+    ]
+
+    Supervisor.start_link(children, strategy: :one_for_one)
+  end
+end
+```
+
+### Dynamic Supervision
+
+```elixir
+defmodule MyApp.DynamicProcessor do
+  use DynamicSupervisor
+
+  def start_link(init_arg) do
+    DynamicSupervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
+  end
+
+  def init(_init_arg) do
+    DynamicSupervisor.init(strategy: :one_for_one)
+  end
+
+  def start_processor(prompt) do
+    child_spec = %{
+      id: make_ref(),
+      start: {MyApp.Processor, :start_link, [prompt]},
+      restart: :temporary
+    }
+
+    DynamicSupervisor.start_child(__MODULE__, child_spec)
+  end
+end
+
+defmodule MyApp.Processor do
+  use GenServer
+
+  def start_link(prompt) do
+    GenServer.start_link(__MODULE__, prompt)
+  end
+
+  def init(prompt) do
+    {:ok, trace} = Untrace.Client.trace(:untrace_client, %{
+      event_type: "dynamic_processing",
+      data: %{prompt: prompt}
+    })
+
+    # Process the prompt
+    send(self(), :process)
+
+    {:ok, %{prompt: prompt, trace: trace}}
+  end
+
+  def handle_info(:process, state) do
+    # Process the prompt
+    result = call_llm_api(state.prompt)
+
+    Untrace.Client.update_trace(:untrace_client, state.trace.id, %{
+      result: result,
+      status: "completed"
+    })
+
+    {:stop, :normal, state}
+  end
+end
+```
+
+## Best Practices
+
+### 1. Use Named Processes
+
+```elixir
+# Good: Use named processes for easy access
+{:ok, _pid} = Untrace.Client.start_link(api_key: "your-api-key", name: :untrace_client)
+Untrace.Client.trace(:untrace_client, trace_data)
+
+# Avoid: Managing PIDs manually
+{:ok, pid} = Untrace.Client.start_link(api_key: "your-api-key")
+Untrace.Client.trace(pid, trace_data)
+```
+
+### 2. Handle Errors Gracefully
+
+```elixir
+def safe_trace(event_type, data, metadata \\ %{}) do
+  case Untrace.Client.trace(:untrace_client, %{
+    event_type: event_type,
+    data: data,
+    metadata: metadata
+  }) do
+    {:ok, trace} -> {:ok, trace}
+    {:error, reason, message} ->
+      Logger.error("Trace failed: #{reason} - #{message}")
+      {:error, {reason, message}}
+  end
+end
+```
+
+### 3. Use Context Managers
+
+```elixir
+defmodule MyApp.Tracing do
+  def with_trace(event_type, data, metadata \\ %{}, fun) do
+    {:ok, trace} = Untrace.Client.trace(:untrace_client, %{
+      event_type: event_type,
+      data: data,
+      metadata: metadata
+    })
+
+    try do
+      result = fun.()
+      Untrace.Client.update_trace(:untrace_client, trace.id, %{status: "completed"})
+      {:ok, result}
+    rescue
+      error ->
+        Untrace.Client.update_trace(:untrace_client, trace.id, %{
+          error: Exception.message(error),
+          status: "failed"
+        })
+        {:error, error}
+    end
+  end
+end
+```
+
+### 4. Initialize in Application
+
+```elixir
+# Good: Initialize in application supervision tree
+defmodule MyApp.Application do
+  use Application
+
+  def start(_type, _args) do
+    children = [
+      {Untrace.Client, api_key: System.get_env("UNTRACE_API_KEY"), name: :untrace_client},
+      # ... other children
+    ]
+
+    Supervisor.start_link(children, strategy: :one_for_one)
+  end
+end
+```
+
+## Troubleshooting
+
+### Common Issues
+
+<AccordionGroup>
+  <Accordion title="No traces appearing">
+    ```elixir
+    # Enable debug mode
+    {:ok, client} = Untrace.Client.start_link(
+      api_key: "your-api-key",
+      debug: true
+    )
+
+    # Check logs for errors
+    ```
+  </Accordion>
+  <Accordion title="Connection timeouts">
+    ```elixir
+    # Increase timeout
+    {:ok, client} = Untrace.Client.start_link(
+      api_key: "your-api-key",
+      timeout: 60_000
+    )
+    ```
+  </Accordion>
+  <Accordion title="Process crashes">
+    ```elixir
+    # Use supervision tree for automatic restart
+    children = [
+      {Untrace.Client, api_key: "your-api-key", name: :untrace_client}
+    ]
+    Supervisor.start_link(children, strategy: :one_for_one)
+    ```
+  </Accordion>
+  <Accordion title="Memory usage">
+    ```elixir
+    # Use batch processing for high volume
+    Untrace.Client.trace_batch(:untrace_client, traces)
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## API Reference
+
+### Untrace.Client
+
+The main client module for interacting with the Untrace API.
+
+#### Functions
+
+- `start_link/1`: Start a new client process
+- `trace/2`: Send a trace event
+- `trace_batch/2`: Send multiple traces in batch
+- `update_trace/3`: Update an existing trace
+- `get_trace/2`: Retrieve a trace by ID
+- `stop/1`: Stop the client process
+
+#### Configuration
+
+```elixir
+%{
+  api_key: "your-api-key",           # Required
+  base_url: "https://api.untrace.dev", # Optional, defaults to https://api.untrace.dev
+  timeout: 30_000,                   # Optional, defaults to 30 seconds
+  name: :untrace_client              # Optional, for named process
+}
+```
+
+### Error Types
+
+- `{:error, :validation_error, message}`: Raised when request validation fails
+- `{:error, :api_error, message}`: Raised when API requests fail
+- `{:error, :network_error, reason}`: Raised when network requests fail
+
+## Support
+
+- **Documentation**: [https://docs.untrace.dev](https://docs.untrace.dev)
+- **GitHub Issues**: [https://github.com/untrace-dev/untrace/issues](https://github.com/untrace-dev/untrace/issues)
+- **Discord Community**: [Join our Discord](https://discord.gg/untrace)
+- **Email Support**: support@untrace.dev
+
+## Next Steps
+
+<CardGroup>
+  <Card
+    title="Dashboard Guide"
+    icon="gauge"
+    href="/dashboard"
+  >
+    Learn to use the Untrace dashboard
+  </Card>
+  <Card
+    title="Configuration"
+    icon="settings"
+    href="/configuration"
+  >
+    Configure your observability setup
+  </Card>
+  <Card
+    title="Examples"
+    icon="code"
+    href="https://github.com/untrace-dev/examples"
+  >
+    Browse Elixir example implementations
+  </Card>
+  <Card
+    title="API Reference"
+    icon="book"
+    href="/api-reference"
+  >
+    Complete API documentation
+  </Card>
+</CardGroup>
+

@@ -1,0 +1,332 @@
+---
+title: SDK Overview
+description: "Multi-language SDKs for LLM observability - choose your language"
+---
+
+# Untrace SDKs
+
+Untrace provides native SDKs for all major programming languages, each designed to integrate seamlessly with your existing codebase and framework of choice.
+
+## Supported Languages
+
+<CardGroup cols={3}>
+  <Card
+    title="JavaScript/TypeScript"
+    icon="code"
+    href="/sdk"
+  >
+    **Node.js, React, Next.js, Express**<br/>
+    Zero-latency instrumentation with decorators and auto-instrumentation
+  </Card>
+  <Card
+    title="Python"
+    icon="python"
+    href="/sdk-python"
+  >
+    **FastAPI, Django, Flask**<br/>
+    Async support with context managers and framework integration
+  </Card>
+  <Card
+    title="Go"
+    icon="golang"
+    href="/sdk-go"
+  >
+    **Gin, Echo, Fiber**<br/>
+    High-performance tracing with context propagation
+  </Card>
+  <Card
+    title="Rust"
+    icon="rust"
+    href="/sdk-rust"
+  >
+    **Axum, Actix, Tokio**<br/>
+    Zero-cost abstractions with async/await support
+  </Card>
+  <Card
+    title="C#/.NET"
+    icon="csharp"
+    href="/sdk-csharp"
+  >
+    **ASP.NET Core, Console apps**<br/>
+    Built-in DI support and activity-based tracing
+  </Card>
+  <Card
+    title="Elixir"
+    icon="elixir"
+    href="/sdk-elixir"
+  >
+    **Phoenix, LiveView, OTP**<br/>
+    Actor model integration with supervision trees
+  </Card>
+</CardGroup>
+
+## Quick Comparison
+
+| Language | Package Manager | Key Features | Best For |
+|----------|----------------|--------------|----------|
+| **JavaScript/TypeScript** | `npm install @untrace/sdk` | Decorators, Auto-instrumentation | Web apps, APIs, Full-stack |
+| **Python** | `pip install untrace-sdk` | Async/await, Context managers | ML/AI apps, APIs, Data processing |
+| **Go** | `go get github.com/untrace-dev/untrace-sdk-go` | Context propagation, Performance | Microservices, APIs, CLI tools |
+| **Rust** | `cargo add untrace-sdk` | Zero-cost abstractions, Memory safety | High-performance systems, WebAssembly |
+| **C#/.NET** | `dotnet add package Untrace.Sdk` | DI integration, Activities | Enterprise apps, Windows services |
+| **Elixir** | `{:untrace_sdk, "~> 0.1.2"}` | OTP integration, Telemetry | Real-time apps, Distributed systems |
+
+## Common Features
+
+All SDKs provide:
+
+- **Zero-latency instrumentation** - Minimal performance overhead
+- **OpenTelemetry compliance** - Industry-standard observability
+- **Automatic provider detection** - Works with all major LLM providers
+- **Token usage tracking** - Automatic cost calculation
+- **Error handling** - Comprehensive error capture and reporting
+- **Custom attributes** - Add your own metadata and context
+- **Sampling support** - Control data volume and costs
+- **Batch processing** - Efficient data transmission
+
+## Getting Started
+
+### 1. Choose Your Language
+
+Select the SDK that matches your tech stack:
+
+- **Web Development**: JavaScript/TypeScript, Python, C#/.NET
+- **Microservices**: Go, Rust, Elixir
+- **AI/ML**: Python, JavaScript/TypeScript
+- **High Performance**: Rust, Go
+- **Enterprise**: C#/.NET, Java (coming soon)
+
+### 2. Install the SDK
+
+Each language has its own installation method:
+
+<CodeGroup>
+
+```bash JavaScript/TypeScript
+npm install @untrace/sdk
+```
+
+```bash Python
+pip install untrace-sdk
+```
+
+```bash Go
+go get github.com/untrace-dev/untrace-sdk-go
+```
+
+```bash Rust
+cargo add untrace-sdk
+```
+
+```bash C#/.NET
+dotnet add package Untrace.Sdk
+```
+
+```bash Elixir
+# Add to mix.exs
+{:untrace_sdk, "~> 0.1.2"}
+```
+
+</CodeGroup>
+
+### 3. Initialize and Start Tracing
+
+<CodeGroup>
+
+```typescript JavaScript/TypeScript
+import { init } from '@untrace/sdk';
+
+const untrace = init({
+  apiKey: 'your-api-key',
+  serviceName: 'my-app'
+});
+```
+
+```python Python
+from untrace import UntraceClient
+
+async with UntraceClient(api_key="your-api-key") as client:
+    trace = await client.trace("llm_call", {"model": "gpt-4"})
+```
+
+```go Go
+import "github.com/untrace-dev/untrace-sdk-go"
+
+client, err := untrace.Init(untrace.Config{
+    APIKey: "your-api-key",
+    ServiceName: "my-app",
+})
+```
+
+```rust Rust
+use untrace::{init, Config};
+
+let untrace = init(Config::new("your-api-key".to_string())).await?;
+```
+
+```csharp C#/.NET
+using Untrace;
+
+var untrace = UntraceSdk.Init(new UntraceConfig
+{
+    ApiKey = "your-api-key",
+    ServiceName = "my-app"
+});
+```
+
+```elixir Elixir
+{:ok, client} = Untrace.Client.start_link(api_key: "your-api-key")
+{:ok, trace} = Untrace.Client.trace(client, %{
+  event_type: "llm_call",
+  data: %{model: "gpt-4"}
+})
+```
+
+</CodeGroup>
+
+## Framework Integration
+
+### Web Frameworks
+
+| Framework | JavaScript | Python | Go | Rust | C# | Elixir |
+|-----------|------------|--------|----|----- |-----|--------|
+| **React/Next.js** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Express** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **FastAPI** | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Django** | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Flask** | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Gin** | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| **Echo** | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| **Fiber** | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| **Axum** | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ |
+| **Actix** | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ |
+| **ASP.NET Core** | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
+| **Phoenix** | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+
+### AI/ML Frameworks
+
+| Framework | JavaScript | Python | Go | Rust | C# | Elixir |
+|-----------|------------|--------|----|----- |-----|--------|
+| **LangChain** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **LlamaIndex** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **OpenAI** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Anthropic** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Hugging Face** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+
+## Migration Between Languages
+
+If you're switching between languages or have a polyglot codebase, Untrace makes it easy to maintain consistent observability:
+
+### Consistent Data Model
+
+All SDKs use the same trace data structure:
+
+```json
+{
+  "event_type": "llm_call",
+  "data": {
+    "model": "gpt-4",
+    "prompt": "Hello world",
+    "response": "Hello! How can I help?",
+    "tokens_used": 25
+  },
+  "metadata": {
+    "user_id": "user123",
+    "session_id": "session456"
+  }
+}
+```
+
+### Cross-Language Correlation
+
+Traces from different languages are automatically correlated using:
+
+- **Trace IDs** - Unique identifiers for each trace
+- **Parent-Child relationships** - Link related operations
+- **Workflow IDs** - Group related traces across services
+- **User/Session context** - Maintain user journey across languages
+
+## Best Practices
+
+### 1. Choose the Right SDK
+
+- **JavaScript/TypeScript**: Web applications, full-stack development
+- **Python**: AI/ML applications, data processing, APIs
+- **Go**: Microservices, high-performance APIs, CLI tools
+- **Rust**: High-performance systems, WebAssembly, embedded
+- **C#/.NET**: Enterprise applications, Windows services
+- **Elixir**: Real-time applications, distributed systems
+
+### 2. Consistent Naming
+
+Use consistent naming conventions across all your services:
+
+```typescript
+// JavaScript
+const trace = await untrace.trace("llm_call", {
+  model: "gpt-4",
+  prompt: message
+});
+```
+
+```python
+# Python
+trace = await client.trace("llm_call", {
+    "model": "gpt-4",
+    "prompt": message
+})
+```
+
+### 3. Shared Context
+
+Pass context between services using standard headers:
+
+```typescript
+// JavaScript - Set headers
+const response = await fetch('/api/process', {
+  headers: {
+    'X-Trace-ID': traceId,
+    'X-User-ID': userId
+  }
+});
+```
+
+```go
+// Go - Read headers
+traceID := r.Header.Get("X-Trace-ID")
+userID := r.Header.Get("X-User-ID")
+```
+
+## Next Steps
+
+<CardGroup>
+  <Card
+    title="Choose Your SDK"
+    icon="code"
+    href="/sdk"
+  >
+    Start with the main SDK documentation
+  </Card>
+  <Card
+    title="Language-Specific Guides"
+    icon="book"
+    href="/sdk-python"
+  >
+    Deep dive into your chosen language
+  </Card>
+  <Card
+    title="Framework Examples"
+    icon="magic"
+    href="https://github.com/untrace-dev/examples"
+  >
+    See real-world implementations
+  </Card>
+  <Card
+    title="Dashboard Setup"
+    icon="gauge"
+    href="/dashboard"
+  >
+    Configure your observability dashboard
+  </Card>
+</CardGroup>
+

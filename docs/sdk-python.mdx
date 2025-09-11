@@ -1,0 +1,768 @@
+---
+title: Python SDK
+description: "Python SDK for LLM observability - instrument once, observe everywhere"
+---
+
+<img
+  className="block dark:hidden"
+  src="/images/sdk-light.png"
+  alt="Untrace Python SDK Light"
+/>
+<img
+  className="hidden dark:block"
+  src="/images/sdk-dark.png"
+  alt="Untrace Python SDK Dark"
+/>
+
+## Overview
+
+The Untrace Python SDK provides zero-latency LLM observability with automatic instrumentation for all major LLM providers. Built on OpenTelemetry standards, it captures comprehensive trace data and routes it to your chosen observability platforms.
+
+<CardGroup cols={2}>
+  <Card
+    title="Quick Start"
+    icon="rocket"
+    href="#quick-start"
+  >
+    Start tracing LLM calls in minutes
+  </Card>
+  <Card
+    title="Framework Support"
+    icon="magic"
+    href="#framework-integration"
+  >
+    FastAPI, Django, Flask, and more
+  </Card>
+  <Card
+    title="Async Support"
+    icon="zap"
+    href="#async-usage"
+  >
+    Full async/await support
+  </Card>
+  <Card
+    title="Examples"
+    icon="code"
+    href="#examples"
+  >
+    Real-world examples and best practices
+  </Card>
+</CardGroup>
+
+## Installation
+
+Install the Untrace Python SDK using pip:
+
+<CodeGroup>
+
+```bash pip
+pip install untrace-sdk
+```
+
+```bash pipenv
+pipenv install untrace-sdk
+```
+
+```bash poetry
+poetry add untrace-sdk
+```
+
+```bash uv
+uv add untrace-sdk
+```
+
+</CodeGroup>
+
+## Quick Start
+
+### Basic Setup
+
+```python
+import asyncio
+from untrace import UntraceClient
+
+async def main():
+    # Initialize the client
+    async with UntraceClient(api_key="your-api-key") as client:
+        # Send a trace event
+        trace = await client.trace(
+            event_type="llm_call",
+            data={
+                "model": "gpt-4",
+                "prompt": "Hello, world!",
+                "response": "Hello! How can I help you today?",
+                "tokens_used": 25,
+            },
+            metadata={
+                "user_id": "user123",
+                "session_id": "session456",
+            }
+        )
+        print(f"Trace created: {trace.id}")
+
+# Run the async function
+asyncio.run(main())
+```
+
+### Synchronous Usage
+
+```python
+from untrace import UntraceClient
+
+# Initialize the client
+client = UntraceClient(api_key="your-api-key")
+
+# Send a trace event
+trace = client.trace_sync(
+    event_type="llm_call",
+    data={
+        "model": "gpt-4",
+        "prompt": "Hello, world!",
+        "response": "Hello! How can I help you today?",
+    }
+)
+
+print(f"Trace created: {trace.id}")
+
+# Don't forget to close the client
+client.close()
+```
+
+## Configuration
+
+### Client Options
+
+```python
+from untrace import UntraceClient
+
+client = UntraceClient(
+    api_key="your-api-key",           # Required
+    base_url="https://api.untrace.dev", # Optional, defaults to https://api.untrace.dev
+    timeout=30.0,                     # Optional, defaults to 30 seconds
+    max_retries=3,                    # Optional, defaults to 3
+    retry_delay=1.0,                  # Optional, defaults to 1 second
+)
+```
+
+### Environment Variables
+
+The SDK supports configuration via environment variables:
+
+```bash
+# Core settings
+UNTRACE_API_KEY=your-api-key
+UNTRACE_BASE_URL=https://api.untrace.dev
+UNTRACE_DEBUG=true
+
+# OpenTelemetry settings
+OTEL_SERVICE_NAME=my-service
+OTEL_RESOURCE_ATTRIBUTES=environment=production,version=1.0.0
+```
+
+## Framework Integration
+
+### FastAPI
+
+```python
+from fastapi import FastAPI, HTTPException
+from untrace import UntraceClient
+import asyncio
+
+app = FastAPI()
+
+# Initialize client
+client = UntraceClient(api_key="your-api-key")
+
+@app.on_event("startup")
+async def startup_event():
+    await client.__aenter__()
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    await client.__aexit__(None, None, None)
+
+@app.post("/chat")
+async def chat_endpoint(request: dict):
+    try:
+        trace = await client.trace(
+            event_type="llm_call",
+            data={
+                "model": "gpt-4",
+                "prompt": request["message"],
+                "response": "Generated response",
+                "tokens_used": 100,
+            },
+            metadata={
+                "user_id": request.get("user_id"),
+                "session_id": request.get("session_id"),
+            }
+        )
+
+        return {
+            "response": "Generated response",
+            "trace_id": trace.id
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+```
+
+### Django
+
+```python
+# settings.py
+UNTRACE_API_KEY = "your-api-key"
+UNTRACE_BASE_URL = "https://api.untrace.dev"
+
+# views.py
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+from untrace import UntraceClient
+import json
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def chat_view(request):
+    try:
+        data = json.loads(request.body)
+        client = UntraceClient(api_key=settings.UNTRACE_API_KEY)
+
+        trace = client.trace_sync(
+            event_type="llm_call",
+            data={
+                "model": "gpt-4",
+                "prompt": data["message"],
+                "response": "Generated response",
+            },
+            metadata={
+                "user_id": data.get("user_id"),
+                "session_id": data.get("session_id"),
+            }
+        )
+
+        return JsonResponse({
+            "response": "Generated response",
+            "trace_id": trace.id
+        })
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+    finally:
+        client.close()
+```
+
+### Flask
+
+```python
+from flask import Flask, request, jsonify
+from untrace import UntraceClient
+
+app = Flask(__name__)
+client = UntraceClient(api_key="your-api-key")
+
+@app.route("/chat", methods=["POST"])
+def chat():
+    try:
+        data = request.get_json()
+
+        trace = client.trace_sync(
+            event_type="llm_call",
+            data={
+                "model": "gpt-4",
+                "prompt": data["message"],
+                "response": "Generated response",
+            }
+        )
+
+        return jsonify({
+            "response": "Generated response",
+            "trace_id": trace.id
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.teardown_appcontext
+def close_client(error):
+    client.close()
+```
+
+### Celery Integration
+
+```python
+from celery import Celery
+from untrace import UntraceClient
+
+app = Celery('myapp')
+
+@app.task
+def process_llm_request(prompt, user_id):
+    client = UntraceClient(api_key="your-api-key")
+
+    try:
+        # Your LLM processing logic here
+        response = call_llm_api(prompt)
+
+        # Trace the operation
+        trace = client.trace_sync(
+            event_type="llm_call",
+            data={
+                "model": "gpt-4",
+                "prompt": prompt,
+                "response": response,
+            },
+            metadata={
+                "user_id": user_id,
+                "task_id": process_llm_request.request.id,
+            }
+        )
+
+        return {
+            "response": response,
+            "trace_id": trace.id
+        }
+    finally:
+        client.close()
+```
+
+## Advanced Usage
+
+### Custom Trace Attributes
+
+```python
+from untrace import UntraceClient
+from datetime import datetime
+
+client = UntraceClient(api_key="your-api-key")
+
+# Create a trace with custom attributes
+trace = await client.trace(
+    event_type="llm_call",
+    data={
+        "model": "gpt-4",
+        "prompt": "What is the meaning of life?",
+        "response": "42",
+        "tokens_used": 50,
+        "temperature": 0.7,
+        "max_tokens": 100,
+    },
+    metadata={
+        "user_id": "user123",
+        "session_id": "session456",
+        "timestamp": datetime.now().isoformat(),
+        "custom_metric": 42.5,
+        "feature_flag": "new_ui",
+    }
+)
+```
+
+### Batch Tracing
+
+```python
+from untrace import UntraceClient
+
+client = UntraceClient(api_key="your-api-key")
+
+# Send multiple traces in batch
+traces = await client.trace_batch([
+    {
+        "event_type": "llm_call",
+        "data": {"model": "gpt-4", "prompt": "Hello 1"},
+    },
+    {
+        "event_type": "llm_call",
+        "data": {"model": "gpt-4", "prompt": "Hello 2"},
+    },
+    {
+        "event_type": "llm_call",
+        "data": {"model": "gpt-4", "prompt": "Hello 3"},
+    }
+])
+
+print(f"Created {len(traces)} traces")
+```
+
+### Error Handling
+
+```python
+from untrace import UntraceClient, UntraceAPIError, UntraceValidationError
+
+client = UntraceClient(api_key="your-api-key")
+
+try:
+    trace = await client.trace(
+        event_type="llm_call",
+        data={"model": "gpt-4", "prompt": "Hello"}
+    )
+    print(f"Trace created: {trace.id}")
+
+except UntraceValidationError as e:
+    print(f"Validation error: {e}")
+
+except UntraceAPIError as e:
+    print(f"API error: {e}")
+
+except Exception as e:
+    print(f"Unexpected error: {e}")
+```
+
+### Context Managers
+
+```python
+from untrace import UntraceClient
+
+# Using context manager for automatic cleanup
+async with UntraceClient(api_key="your-api-key") as client:
+    trace = await client.trace(
+        event_type="llm_call",
+        data={"model": "gpt-4", "prompt": "Hello"}
+    )
+    # Client is automatically closed when exiting the context
+```
+
+## Decorators
+
+The Python SDK provides decorators for easy instrumentation:
+
+```python
+from untrace import trace, metric, error_handler
+import asyncio
+
+class LLMService:
+    @trace(event_type="llm_call")
+    async def call_llm(self, prompt: str, model: str = "gpt-4"):
+        # Your LLM logic here
+        return "Generated response"
+
+    @metric(name="llm.latency", unit="ms")
+    async def measure_latency(self, operation):
+        # Your operation here
+        pass
+
+    @error_handler(re_raise=True)
+    async def risky_operation(self):
+        # Operation that might fail
+        pass
+```
+
+## Examples
+
+### OpenAI Integration
+
+```python
+import openai
+from untrace import UntraceClient
+
+# Initialize OpenAI
+openai.api_key = "your-openai-key"
+
+# Initialize Untrace
+client = UntraceClient(api_key="your-untrace-key")
+
+async def chat_with_tracing(prompt: str):
+    # Start tracing
+    trace = await client.trace(
+        event_type="llm_call",
+        data={
+            "model": "gpt-4",
+            "prompt": prompt,
+        }
+    )
+
+    try:
+        # Make OpenAI API call
+        response = await openai.ChatCompletion.acreate(
+            model="gpt-4",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=100,
+            temperature=0.7
+        )
+
+        # Update trace with response
+        await client.update_trace(trace.id, {
+            "response": response.choices[0].message.content,
+            "tokens_used": response.usage.total_tokens,
+            "finish_reason": response.choices[0].finish_reason,
+        })
+
+        return response.choices[0].message.content
+
+    except Exception as e:
+        # Record error in trace
+        await client.update_trace(trace.id, {
+            "error": str(e),
+            "error_type": type(e).__name__,
+        })
+        raise
+```
+
+### LangChain Integration
+
+```python
+from langchain.llms import OpenAI
+from langchain.chains import ConversationChain
+from untrace import UntraceClient
+
+# Initialize LangChain
+llm = OpenAI(temperature=0.7)
+conversation = ConversationChain(llm=llm)
+
+# Initialize Untrace
+client = UntraceClient(api_key="your-untrace-key")
+
+async def chat_with_langchain(prompt: str):
+    trace = await client.trace(
+        event_type="langchain_call",
+        data={
+            "model": "gpt-3.5-turbo",
+            "prompt": prompt,
+        }
+    )
+
+    try:
+        # Run LangChain conversation
+        response = conversation.predict(input=prompt)
+
+        await client.update_trace(trace.id, {
+            "response": response,
+            "chain_type": "conversation",
+        })
+
+        return response
+
+    except Exception as e:
+        await client.update_trace(trace.id, {
+            "error": str(e),
+        })
+        raise
+```
+
+### Async Generator Support
+
+```python
+from untrace import UntraceClient
+
+client = UntraceClient(api_key="your-api-key")
+
+async def stream_llm_response(prompt: str):
+    trace = await client.trace(
+        event_type="llm_stream",
+        data={"model": "gpt-4", "prompt": prompt}
+    )
+
+    try:
+        # Simulate streaming response
+        async for chunk in stream_llm_api(prompt):
+            yield chunk
+
+        await client.update_trace(trace.id, {
+            "status": "completed",
+            "chunks_received": 10,
+        })
+
+    except Exception as e:
+        await client.update_trace(trace.id, {
+            "error": str(e),
+            "status": "failed",
+        })
+        raise
+```
+
+## Best Practices
+
+### 1. Use Context Managers
+
+```python
+# Good: Automatic cleanup
+async with UntraceClient(api_key="your-api-key") as client:
+    trace = await client.trace(...)
+
+# Avoid: Manual cleanup (easy to forget)
+client = UntraceClient(api_key="your-api-key")
+trace = await client.trace(...)
+# Forgot to call client.close()!
+```
+
+### 2. Handle Errors Gracefully
+
+```python
+async def safe_llm_call(prompt: str):
+    try:
+        trace = await client.trace(event_type="llm_call", data={"prompt": prompt})
+        result = await call_llm_api(prompt)
+        await client.update_trace(trace.id, {"response": result})
+        return result
+    except Exception as e:
+        if 'trace' in locals():
+            await client.update_trace(trace.id, {"error": str(e)})
+        raise
+```
+
+### 3. Use Batch Operations for High Volume
+
+```python
+# Good: Batch multiple traces
+traces = await client.trace_batch(trace_data_list)
+
+# Avoid: Individual API calls in a loop
+for data in trace_data_list:
+    await client.trace(data)  # Inefficient
+```
+
+### 4. Set Appropriate Timeouts
+
+```python
+# For long-running operations
+client = UntraceClient(
+    api_key="your-api-key",
+    timeout=120.0  # 2 minutes
+)
+```
+
+## Troubleshooting
+
+### Common Issues
+
+<AccordionGroup>
+  <Accordion title="No traces appearing">
+    ```python
+    # Enable debug mode
+    client = UntraceClient(
+        api_key="your-api-key",
+        debug=True
+    )
+
+    # Check console for errors
+    ```
+  </Accordion>
+  <Accordion title="Connection timeouts">
+    ```python
+    # Increase timeout
+    client = UntraceClient(
+        api_key="your-api-key",
+        timeout=60.0
+    )
+    ```
+  </Accordion>
+  <Accordion title="Memory usage">
+    ```python
+    # Use context managers for automatic cleanup
+    async with UntraceClient(api_key="your-api-key") as client:
+        # Your code here
+    ```
+  </Accordion>
+  <Accordion title="Async/await issues">
+    ```python
+    # Make sure to use async/await consistently
+    async def main():
+        async with UntraceClient(api_key="your-api-key") as client:
+            trace = await client.trace(...)
+
+    asyncio.run(main())
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## API Reference
+
+### UntraceClient
+
+The main client class for interacting with the Untrace API.
+
+#### Constructor
+
+```python
+UntraceClient(
+    api_key: str,
+    base_url: str = "https://api.untrace.dev",
+    timeout: float = 30.0,
+    max_retries: int = 3,
+    retry_delay: float = 1.0,
+    debug: bool = False
+)
+```
+
+#### Methods
+
+- `trace(event_type, data, metadata=None)`: Send a trace event (async)
+- `trace_sync(event_type, data, metadata=None)`: Send a trace event (sync)
+- `trace_batch(traces)`: Send multiple traces in batch (async)
+- `update_trace(trace_id, data)`: Update an existing trace (async)
+- `get_trace(trace_id)`: Retrieve a trace by ID (async)
+- `close()`: Close the HTTP client
+
+### Exception Types
+
+- `UntraceError`: Base exception for all SDK errors
+- `UntraceAPIError`: Raised when API requests fail
+- `UntraceValidationError`: Raised when request validation fails
+- `UntraceTimeoutError`: Raised when requests timeout
+
+## Migration Guide
+
+### From Other Observability Tools
+
+```python
+# Before: Custom logging
+import logging
+logger = logging.getLogger(__name__)
+
+def call_llm(prompt):
+    logger.info(f"Calling LLM with prompt: {prompt}")
+    result = openai_call(prompt)
+    logger.info(f"LLM response: {result}")
+    return result
+
+# After: Untrace SDK
+from untrace import UntraceClient
+
+client = UntraceClient(api_key="your-api-key")
+
+async def call_llm(prompt):
+    trace = await client.trace(
+        event_type="llm_call",
+        data={"prompt": prompt}
+    )
+    result = openai_call(prompt)
+    await client.update_trace(trace.id, {"response": result})
+    return result
+```
+
+## Support
+
+- **Documentation**: [https://docs.untrace.dev](https://docs.untrace.dev)
+- **GitHub Issues**: [https://github.com/untrace-dev/untrace/issues](https://github.com/untrace-dev/untrace/issues)
+- **Discord Community**: [Join our Discord](https://discord.gg/untrace)
+- **Email Support**: support@untrace.dev
+
+## Next Steps
+
+<CardGroup>
+  <Card
+    title="Dashboard Guide"
+    icon="gauge"
+    href="/dashboard"
+  >
+    Learn to use the Untrace dashboard
+  </Card>
+  <Card
+    title="Configuration"
+    icon="settings"
+    href="/configuration"
+  >
+    Configure your observability setup
+  </Card>
+  <Card
+    title="Examples"
+    icon="code"
+    href="https://github.com/untrace-dev/examples"
+  >
+    Browse Python example implementations
+  </Card>
+  <Card
+    title="API Reference"
+    icon="book"
+    href="/api-reference"
+  >
+    Complete API documentation
+  </Card>
+</CardGroup>
+

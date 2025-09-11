@@ -1,0 +1,922 @@
+---
+title: Go SDK
+description: "Go SDK for LLM observability - instrument once, observe everywhere"
+---
+
+<img
+  className="block dark:hidden"
+  src="/images/sdk-light.png"
+  alt="Untrace Go SDK Light"
+/>
+<img
+  className="hidden dark:block"
+  src="/images/sdk-dark.png"
+  alt="Untrace Go SDK Dark"
+/>
+
+## Overview
+
+The Untrace Go SDK provides zero-latency LLM observability with automatic instrumentation for all major LLM providers. Built on OpenTelemetry standards, it captures comprehensive trace data and routes it to your chosen observability platforms.
+
+<CardGroup cols={2}>
+  <Card
+    title="Quick Start"
+    icon="rocket"
+    href="#quick-start"
+  >
+    Start tracing LLM calls in minutes
+  </Card>
+  <Card
+    title="Framework Support"
+    icon="magic"
+    href="#framework-integration"
+  >
+    Gin, Echo, Fiber, and microservices
+  </Card>
+  <Card
+    title="Performance"
+    icon="zap"
+    href="#performance"
+  >
+    High-performance, low-overhead tracing
+  </Card>
+  <Card
+    title="Examples"
+    icon="code"
+    href="#examples"
+  >
+    Real-world examples and best practices
+  </Card>
+</CardGroup>
+
+## Installation
+
+Install the Untrace Go SDK using go get:
+
+```bash
+go get github.com/untrace-dev/untrace-sdk-go
+```
+
+## Quick Start
+
+### Basic Setup
+
+```go
+package main
+
+import (
+    "context"
+    "log"
+
+    "github.com/untrace-dev/untrace-sdk-go"
+)
+
+func main() {
+    // Initialize the SDK
+    client, err := untrace.Init(untrace.Config{
+        APIKey: "your-api-key",
+        ServiceName: "my-llm-app",
+        Environment: "production",
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer client.Shutdown(context.Background())
+
+    // Create a span for an LLM operation
+    ctx, span := client.Tracer().StartLLMSpan(context.Background(), "chat-completion", untrace.LLMSpanOptions{
+        Provider: "openai",
+        Model: "gpt-3.5-turbo",
+        Operation: "chat",
+    })
+    defer span.End()
+
+    // Your LLM code here
+    // The span will automatically capture timing and context
+}
+```
+
+### Manual Instrumentation
+
+```go
+package main
+
+import (
+    "context"
+    "log"
+
+    "github.com/untrace-dev/untrace-sdk-go"
+)
+
+func main() {
+    client, err := untrace.Init(untrace.Config{
+        APIKey: "your-api-key",
+        ServiceName: "my-api",
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer client.Shutdown(context.Background())
+
+    // Create custom spans for your LLM workflows
+    ctx, span := client.Tracer().StartLLMSpan(context.Background(), "custom-llm-call", untrace.LLMSpanOptions{
+        Provider: "custom",
+        Model: "my-model",
+        Operation: "chat",
+    })
+    defer span.End()
+
+    // Add custom attributes
+    span.SetAttributes(
+        untrace.String("custom.metric", "42"),
+        untrace.Int("llm.prompt.tokens", 100),
+    )
+
+    // Your LLM logic here
+}
+```
+
+## Configuration
+
+### Configuration Options
+
+```go
+type Config struct {
+    // Required
+    APIKey string
+
+    // Optional
+    ServiceName         string
+    Environment         string
+    Version             string
+    BaseURL             string
+    Debug               bool
+    SamplingRate        float64
+    MaxBatchSize        int
+    ExportInterval      time.Duration
+    Headers             map[string]string
+    ResourceAttributes  map[string]interface{}
+}
+```
+
+### Environment Variables
+
+The SDK supports configuration via environment variables:
+
+```bash
+# Core settings
+export UNTRACE_API_KEY="your-api-key"
+export UNTRACE_BASE_URL="https://api.untrace.dev"
+export UNTRACE_DEBUG="true"
+
+# OpenTelemetry settings
+export OTEL_SERVICE_NAME="my-service"
+export OTEL_RESOURCE_ATTRIBUTES="environment=production,version=1.0.0"
+```
+
+### Configuration from Environment
+
+```go
+package main
+
+import (
+    "context"
+    "log"
+    "os"
+
+    "github.com/untrace-dev/untrace-sdk-go"
+)
+
+func main() {
+    // Initialize with environment variables
+    config := untrace.Config{
+        APIKey: os.Getenv("UNTRACE_API_KEY"),
+        ServiceName: os.Getenv("OTEL_SERVICE_NAME"),
+        Environment: os.Getenv("ENVIRONMENT"),
+        Debug: os.Getenv("UNTRACE_DEBUG") == "true",
+    }
+
+    client, err := untrace.Init(config)
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer client.Shutdown(context.Background())
+}
+```
+
+## Framework Integration
+
+### Gin Framework
+
+```go
+package main
+
+import (
+    "net/http"
+
+    "github.com/gin-gonic/gin"
+    "github.com/untrace-dev/untrace-sdk-go"
+)
+
+func main() {
+    client, _ := untrace.Init(untrace.Config{APIKey: "your-api-key"})
+    defer client.Shutdown(context.Background())
+
+    r := gin.Default()
+
+    r.POST("/chat", func(c *gin.Context) {
+        ctx, span := client.Tracer().StartLLMSpan(c.Request.Context(), "chat", untrace.LLMSpanOptions{
+            Provider: "openai",
+            Model: "gpt-4",
+        })
+        defer span.End()
+
+        // Your LLM logic here
+        c.JSON(http.StatusOK, gin.H{"message": "success"})
+    })
+
+    r.Run(":8080")
+}
+```
+
+### Echo Framework
+
+```go
+package main
+
+import (
+    "net/http"
+
+    "github.com/labstack/echo/v4"
+    "github.com/untrace-dev/untrace-sdk-go"
+)
+
+func main() {
+    client, _ := untrace.Init(untrace.Config{APIKey: "your-api-key"})
+    defer client.Shutdown(context.Background())
+
+    e := echo.New()
+
+    e.POST("/chat", func(c echo.Context) error {
+        ctx, span := client.Tracer().StartLLMSpan(c.Request().Context(), "chat", untrace.LLMSpanOptions{
+            Provider: "openai",
+            Model: "gpt-4",
+        })
+        defer span.End()
+
+        // Your LLM logic here
+        return c.JSON(http.StatusOK, map[string]string{"message": "success"})
+    })
+
+    e.Logger.Fatal(e.Start(":8080"))
+}
+```
+
+### Fiber Framework
+
+```go
+package main
+
+import (
+    "github.com/gofiber/fiber/v2"
+    "github.com/untrace-dev/untrace-sdk-go"
+)
+
+func main() {
+    client, _ := untrace.Init(untrace.Config{APIKey: "your-api-key"})
+    defer client.Shutdown(context.Background())
+
+    app := fiber.New()
+
+    app.Post("/chat", func(c *fiber.Ctx) error {
+        ctx, span := client.Tracer().StartLLMSpan(c.Context(), "chat", untrace.LLMSpanOptions{
+            Provider: "openai",
+            Model: "gpt-4",
+        })
+        defer span.End()
+
+        // Your LLM logic here
+        return c.JSON(fiber.Map{"message": "success"})
+    })
+
+    app.Listen(":8080")
+}
+```
+
+### gRPC Integration
+
+```go
+package main
+
+import (
+    "context"
+
+    "google.golang.org/grpc"
+    "github.com/untrace-dev/untrace-sdk-go"
+)
+
+func main() {
+    client, _ := untrace.Init(untrace.Config{APIKey: "your-api-key"})
+    defer client.Shutdown(context.Background())
+
+    // Create gRPC server with tracing
+    s := grpc.NewServer(
+        grpc.UnaryInterceptor(untrace.UnaryServerInterceptor()),
+        grpc.StreamInterceptor(untrace.StreamServerInterceptor()),
+    )
+
+    // Register your services
+    // ...
+
+    // Start server
+    s.Serve(lis)
+}
+```
+
+## Advanced Usage
+
+### Workflow Tracking
+
+```go
+package main
+
+import (
+    "context"
+    "log"
+
+    "github.com/untrace-dev/untrace-sdk-go"
+)
+
+func main() {
+    client, err := untrace.Init(untrace.Config{APIKey: "your-api-key"})
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer client.Shutdown(context.Background())
+
+    // Start a workflow
+    workflow := client.Context().StartWorkflow("customer-support-chat", untrace.WorkflowOptions{
+        UserID: "user-123",
+        SessionID: "session-456",
+        Metadata: map[string]interface{}{
+            "tier": "premium",
+        },
+    })
+    defer workflow.End()
+
+    // Your LLM calls are automatically associated with this workflow
+    ctx, span := client.Tracer().StartLLMSpan(context.Background(), "llm-call", untrace.LLMSpanOptions{
+        Provider: "openai",
+        Model: "gpt-4",
+    })
+    defer span.End()
+
+    // Your LLM logic here
+}
+```
+
+### Metrics Collection
+
+```go
+package main
+
+import (
+    "github.com/untrace-dev/untrace-sdk-go"
+)
+
+func main() {
+    client, _ := untrace.Init(untrace.Config{APIKey: "your-api-key"})
+    defer client.Shutdown(context.Background())
+
+    // Record custom metrics
+    client.Metrics().RecordTokenUsage(untrace.TokenUsage{
+        PromptTokens: 150,
+        CompletionTokens: 50,
+        TotalTokens: 200,
+        Model: "gpt-3.5-turbo",
+        Provider: "openai",
+    })
+
+    client.Metrics().RecordLatency(1234, map[string]interface{}{
+        "provider": "openai",
+        "operation": "chat",
+    })
+
+    client.Metrics().RecordCost(untrace.Cost{
+        Prompt: 0.0015,
+        Completion: 0.002,
+        Total: 0.0035,
+        Model: "gpt-4",
+        Provider: "openai",
+    })
+}
+```
+
+### Custom Attributes
+
+```go
+package main
+
+import (
+    "context"
+    "github.com/untrace-dev/untrace-sdk-go"
+)
+
+func main() {
+    client, _ := untrace.Init(untrace.Config{APIKey: "your-api-key"})
+    defer client.Shutdown(context.Background())
+
+    ctx, span := client.Tracer().StartLLMSpan(context.Background(), "custom-operation", untrace.LLMSpanOptions{
+        Provider: "openai",
+        Model: "gpt-4",
+    })
+    defer span.End()
+
+    // Add custom attributes
+    span.SetAttributes(
+        untrace.String("user.id", "user-123"),
+        untrace.String("user.subscription_tier", "premium"),
+        untrace.String("feature.name", "advanced-search"),
+        untrace.String("feature.version", "2.0"),
+        untrace.Int("custom.metric", 42),
+        untrace.Bool("experimental", true),
+    )
+
+    // Your LLM logic here
+}
+```
+
+### Error Handling
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "log"
+
+    "github.com/untrace-dev/untrace-sdk-go"
+    "github.com/untrace-dev/untrace-sdk-go/errors"
+)
+
+func main() {
+    client, err := untrace.Init(untrace.Config{APIKey: "your-api-key"})
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer client.Shutdown(context.Background())
+
+    ctx, span := client.Tracer().StartLLMSpan(context.Background(), "risky-operation", untrace.LLMSpanOptions{
+        Provider: "openai",
+        Model: "gpt-4",
+    })
+    defer span.End()
+
+    // Check for specific error types
+    if err := riskyOperation(); err != nil {
+        switch e := err.(type) {
+        case *errors.APIError:
+            log.Printf("API error: %v", e)
+            span.SetStatus(codes.Error, e.Error())
+        case *errors.ValidationError:
+            log.Printf("Validation error: %v", e)
+            span.SetStatus(codes.Error, e.Error())
+        case *errors.UntraceError:
+            log.Printf("Untrace error: %v", e)
+            span.SetStatus(codes.Error, e.Error())
+        default:
+            log.Printf("Unknown error: %v", e)
+            span.SetStatus(codes.Error, e.Error())
+        }
+        span.RecordError(err)
+    }
+}
+```
+
+## Examples
+
+### OpenAI Integration
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "log"
+
+    "github.com/untrace-dev/untrace-sdk-go"
+)
+
+func main() {
+    client, err := untrace.Init(untrace.Config{APIKey: "your-api-key"})
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer client.Shutdown(context.Background())
+
+    // Chat with tracing
+    response, err := chatWithTracing(client, "What is the meaning of life?")
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    fmt.Printf("Response: %s\n", response)
+}
+
+func chatWithTracing(client *untrace.Client, prompt string) (string, error) {
+    ctx, span := client.Tracer().StartLLMSpan(context.Background(), "openai-chat", untrace.LLMSpanOptions{
+        Provider: "openai",
+        Model: "gpt-4",
+        Operation: "chat",
+    })
+    defer span.End()
+
+    // Set prompt attribute
+    span.SetAttributes(untrace.String("llm.prompt", prompt))
+
+    // Make OpenAI API call (pseudo-code)
+    response, err := callOpenAI(prompt)
+    if err != nil {
+        span.RecordError(err)
+        span.SetStatus(codes.Error, err.Error())
+        return "", err
+    }
+
+    // Set response attributes
+    span.SetAttributes(
+        untrace.String("llm.response", response),
+        untrace.Int("llm.tokens", 100),
+    )
+
+    return response, nil
+}
+```
+
+### Batch Processing
+
+```go
+package main
+
+import (
+    "context"
+    "log"
+
+    "github.com/untrace-dev/untrace-sdk-go"
+)
+
+func main() {
+    client, err := untrace.Init(untrace.Config{APIKey: "your-api-key"})
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer client.Shutdown(context.Background())
+
+    // Process multiple prompts
+    prompts := []string{
+        "What is AI?",
+        "Explain machine learning",
+        "How does deep learning work?",
+    }
+
+    for i, prompt := range prompts {
+        ctx, span := client.Tracer().StartLLMSpan(context.Background(), "batch-processing", untrace.LLMSpanOptions{
+            Provider: "openai",
+            Model: "gpt-4",
+        })
+        defer span.End()
+
+        span.SetAttributes(
+            untrace.String("llm.prompt", prompt),
+            untrace.Int("batch.index", i),
+            untrace.Int("batch.total", len(prompts)),
+        )
+
+        // Process prompt
+        response, err := processPrompt(prompt)
+        if err != nil {
+            span.RecordError(err)
+            continue
+        }
+
+        span.SetAttributes(untrace.String("llm.response", response))
+    }
+}
+```
+
+### Middleware for HTTP Handlers
+
+```go
+package main
+
+import (
+    "net/http"
+
+    "github.com/gin-gonic/gin"
+    "github.com/untrace-dev/untrace-sdk-go"
+)
+
+// TracingMiddleware creates a middleware that traces HTTP requests
+func TracingMiddleware(client *untrace.Client) gin.HandlerFunc {
+    return func(c *gin.Context) {
+        ctx, span := client.Tracer().StartSpan(c.Request.Context(), "http-request")
+        defer span.End()
+
+        // Set HTTP attributes
+        span.SetAttributes(
+            untrace.String("http.method", c.Request.Method),
+            untrace.String("http.url", c.Request.URL.String()),
+            untrace.String("http.user_agent", c.Request.UserAgent()),
+        )
+
+        // Add span to context
+        c.Request = c.Request.WithContext(ctx)
+
+        // Process request
+        c.Next()
+
+        // Set response attributes
+        span.SetAttributes(
+            untrace.Int("http.status_code", c.Writer.Status()),
+        )
+    }
+}
+
+func main() {
+    client, _ := untrace.Init(untrace.Config{APIKey: "your-api-key"})
+    defer client.Shutdown(context.Background())
+
+    r := gin.Default()
+    r.Use(TracingMiddleware(client))
+
+    r.POST("/chat", func(c *gin.Context) {
+        // Your handler logic here
+        c.JSON(http.StatusOK, gin.H{"message": "success"})
+    })
+
+    r.Run(":8080")
+}
+```
+
+## Performance
+
+### Sampling
+
+```go
+package main
+
+import (
+    "github.com/untrace-dev/untrace-sdk-go"
+)
+
+func main() {
+    // Configure sampling for high-volume applications
+    client, err := untrace.Init(untrace.Config{
+        APIKey: "your-api-key",
+        SamplingRate: 0.1, // Sample 10% of requests
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer client.Shutdown(context.Background())
+}
+```
+
+### Batching
+
+```go
+package main
+
+import (
+    "github.com/untrace-dev/untrace-sdk-go"
+)
+
+func main() {
+    // Configure batching for better performance
+    client, err := untrace.Init(untrace.Config{
+        APIKey: "your-api-key",
+        MaxBatchSize: 100,        // Batch up to 100 spans
+        ExportInterval: 5 * time.Second, // Export every 5 seconds
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer client.Shutdown(context.Background())
+}
+```
+
+## Best Practices
+
+### 1. Use Context Propagation
+
+```go
+// Good: Pass context through the call chain
+func processRequest(ctx context.Context, client *untrace.Client, data string) error {
+    ctx, span := client.Tracer().StartSpan(ctx, "process-request")
+    defer span.End()
+
+    return processData(ctx, data)
+}
+
+func processData(ctx context.Context, data string) error {
+    // Context is automatically propagated
+    // Child spans will be linked to parent
+    return nil
+}
+```
+
+### 2. Handle Errors Properly
+
+```go
+func safeOperation(ctx context.Context, client *untrace.Client) error {
+    ctx, span := client.Tracer().StartSpan(ctx, "safe-operation")
+    defer span.End()
+
+    if err := riskyOperation(); err != nil {
+        span.RecordError(err)
+        span.SetStatus(codes.Error, err.Error())
+        return err
+    }
+
+    span.SetStatus(codes.Ok, "")
+    return nil
+}
+```
+
+### 3. Use Semantic Attributes
+
+```go
+span.SetAttributes(
+    untrace.String("user.id", userID),
+    untrace.String("user.subscription_tier", "premium"),
+    untrace.String("feature.name", "advanced-search"),
+    untrace.String("feature.version", "2.0"),
+)
+```
+
+### 4. Initialize Early
+
+```go
+// Good: Initialize in main or init function
+func main() {
+    client, err := untrace.Init(untrace.Config{APIKey: "your-api-key"})
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer client.Shutdown(context.Background())
+
+    // Rest of your application
+}
+```
+
+## Troubleshooting
+
+### Common Issues
+
+<AccordionGroup>
+  <Accordion title="No traces appearing">
+    ```go
+    // Enable debug mode
+    client, err := untrace.Init(untrace.Config{
+        APIKey: "your-api-key",
+        Debug: true,
+    })
+
+    // Check logs for errors
+    ```
+  </Accordion>
+  <Accordion title="High memory usage">
+    ```go
+    // Adjust batching settings
+    client, err := untrace.Init(untrace.Config{
+        APIKey: "your-api-key",
+        MaxBatchSize: 50,
+        ExportInterval: 2 * time.Second,
+    })
+    ```
+  </Accordion>
+  <Accordion title="Context propagation issues">
+    ```go
+    // Make sure to pass context through call chain
+    func handler(ctx context.Context, client *untrace.Client) {
+        ctx, span := client.Tracer().StartSpan(ctx, "handler")
+        defer span.End()
+
+        // Pass ctx to child functions
+        processData(ctx, data)
+    }
+    ```
+  </Accordion>
+  <Accordion title="Goroutine leaks">
+    ```go
+    // Always call Shutdown in defer
+    client, err := untrace.Init(config)
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer client.Shutdown(context.Background())
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## API Reference
+
+### Core Types
+
+```go
+type Config struct {
+    APIKey             string
+    ServiceName        string
+    Environment        string
+    Version            string
+    BaseURL            string
+    Debug              bool
+    SamplingRate       float64
+    MaxBatchSize       int
+    ExportInterval     time.Duration
+    Headers            map[string]string
+    ResourceAttributes map[string]interface{}
+}
+
+type LLMSpanOptions struct {
+    Provider         string
+    Model            string
+    Operation        string
+    PromptTokens     int
+    CompletionTokens int
+    TotalTokens      int
+    Temperature      float64
+    MaxTokens        int
+}
+
+type WorkflowOptions struct {
+    UserID    string
+    SessionID string
+    Metadata  map[string]interface{}
+}
+```
+
+### Client Methods
+
+```go
+type Client interface {
+    Tracer() Tracer
+    Context() Context
+    Metrics() Metrics
+    Shutdown(ctx context.Context) error
+}
+
+type Tracer interface {
+    StartSpan(ctx context.Context, name string) (context.Context, Span)
+    StartLLMSpan(ctx context.Context, name string, options LLMSpanOptions) (context.Context, Span)
+}
+
+type Span interface {
+    SetAttributes(attrs ...Attribute)
+    SetStatus(code codes.Code, description string)
+    RecordError(err error)
+    End()
+}
+```
+
+## Support
+
+- **Documentation**: [https://docs.untrace.dev](https://docs.untrace.dev)
+- **GitHub Issues**: [https://github.com/untrace-dev/untrace/issues](https://github.com/untrace-dev/untrace/issues)
+- **Discord Community**: [Join our Discord](https://discord.gg/untrace)
+- **Email Support**: support@untrace.dev
+
+## Next Steps
+
+<CardGroup>
+  <Card
+    title="Dashboard Guide"
+    icon="gauge"
+    href="/dashboard"
+  >
+    Learn to use the Untrace dashboard
+  </Card>
+  <Card
+    title="Configuration"
+    icon="settings"
+    href="/configuration"
+  >
+    Configure your observability setup
+  </Card>
+  <Card
+    title="Examples"
+    icon="code"
+    href="https://github.com/untrace-dev/examples"
+  >
+    Browse Go example implementations
+  </Card>
+  <Card
+    title="API Reference"
+    icon="book"
+    href="/api-reference"
+  >
+    Complete API documentation
+  </Card>
+</CardGroup>
+
