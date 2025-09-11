@@ -1,0 +1,130 @@
+name: Elixir SDK Format & Typecheck
+
+on:
+  pull_request:
+    branches: ["*"]
+    paths:
+      - "sdks/elixir/**"
+  push:
+    branches: ["main"]
+    paths:
+      - "sdks/elixir/**"
+  merge_group:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  FORCE_COLOR: 3
+  TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+
+jobs:
+  format:
+    name: Format Elixir SDK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup
+
+      - name: Setup Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: '1.16'
+          otp-version: '26'
+
+      - name: Restore dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: sdks/elixir/deps
+          key: ${{ runner.os }}-elixir-1.16-26-${{ hashFiles('sdks/elixir/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-elixir-1.16-26-
+            ${{ runner.os }}-elixir-1.16-
+            ${{ runner.os }}-elixir-
+
+      - name: Install dependencies
+        working-directory: sdks/elixir
+        run: |
+          mix deps.get
+          mix deps.compile
+
+      - name: Check formatting
+        working-directory: sdks/elixir
+        run: |
+          mix format --check-formatted
+
+  typecheck:
+    name: Typecheck Elixir SDK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup
+
+      - name: Setup Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: '1.16'
+          otp-version: '26'
+
+      - name: Restore dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: sdks/elixir/deps
+          key: ${{ runner.os }}-elixir-1.16-26-${{ hashFiles('sdks/elixir/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-elixir-1.16-26-
+            ${{ runner.os }}-elixir-1.16-
+            ${{ runner.os }}-elixir-
+
+      - name: Install dependencies
+        working-directory: sdks/elixir
+        run: |
+          mix deps.get
+          mix deps.compile
+
+      - name: Run typecheck
+        working-directory: sdks/elixir
+        run: |
+          mix dialyzer
+
+  lint:
+    name: Lint Elixir SDK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup
+
+      - name: Setup Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: '1.16'
+          otp-version: '26'
+
+      - name: Restore dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: sdks/elixir/deps
+          key: ${{ runner.os }}-elixir-1.16-26-${{ hashFiles('sdks/elixir/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-elixir-1.16-26-
+            ${{ runner.os }}-elixir-1.16-
+            ${{ runner.os }}-elixir-
+
+      - name: Install dependencies
+        working-directory: sdks/elixir
+        run: |
+          mix deps.get
+          mix deps.compile
+
+      - name: Run linting
+        working-directory: sdks/elixir
+        run: |
+          mix credo --strict

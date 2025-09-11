@@ -1,0 +1,15 @@
+{
+  "description": "LLM observability SDK for Elixir",
+  "name": "@untrace/sdk-elixir",
+  "private": true,
+  "scripts": {
+    "docs": "mix docs",
+    "format": "mix format",
+    "lint": "mix credo --strict",
+    "test": "mix test",
+    "typecheck": "mix dialyzer",
+    "version": "node ../../scripts/sync-python-version.cjs"
+  },
+  "type": "module",
+  "version": "0.1.2"
+}

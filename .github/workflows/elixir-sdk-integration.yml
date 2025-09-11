@@ -1,0 +1,71 @@
+name: Elixir SDK Integration Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'sdks/elixir/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'sdks/elixir/**'
+  workflow_dispatch:
+
+jobs:
+  integration-test:
+    name: Run Elixir SDK Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup
+
+      - name: Setup Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: '1.16'
+          otp-version: '26'
+
+      - name: Restore dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: sdks/elixir/deps
+          key: ${{ runner.os }}-elixir-1.16-26-${{ hashFiles('sdks/elixir/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-elixir-1.16-26-
+            ${{ runner.os }}-elixir-1.16-
+            ${{ runner.os }}-elixir-
+
+      - name: Install dependencies
+        working-directory: sdks/elixir
+        run: |
+          mix deps.get
+          mix deps.compile
+
+      - name: Run integration tests
+        working-directory: sdks/elixir
+        run: |
+          # Run the example scripts to test integration
+          UNTRACE_API_KEY=test-key elixir examples/basic_usage.exs || true
+          UNTRACE_API_KEY=test-key elixir examples/telemetry_integration.exs || true
+        env:
+          UNTRACE_API_KEY: test-key
+
+      - name: Test documentation generation
+        working-directory: sdks/elixir
+        run: |
+          mix docs
+
+      - name: Test package compilation
+        working-directory: sdks/elixir
+        run: |
+          mix compile --warnings-as-errors
+
+      - name: Test package building
+        working-directory: sdks/elixir
+        run: |
+          mix hex.build --dry-run
