@@ -1,0 +1,15 @@
+{
+  "description": "LLM observability SDK for .NET",
+  "name": "@untrace/sdk-csharp",
+  "private": true,
+  "scripts": {
+    "build": "dotnet build",
+    "clean": "dotnet clean",
+    "pack": "dotnet pack",
+    "restore": "dotnet restore",
+    "test": "dotnet test",
+    "version": "node ../../scripts/sync-python-version.cjs"
+  },
+  "type": "module",
+  "version": "0.1.2"
+}

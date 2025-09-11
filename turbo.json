@@ -15,6 +15,18 @@
     "VERCEL_TOKEN"
   ],
   "tasks": {
+    "@untrace/sdk-csharp#build": {
+      "dependsOn": ["^build"],
+      "outputs": ["bin/**", "obj/**"]
+    },
+    "@untrace/sdk-csharp#pack": {
+      "dependsOn": ["^build"],
+      "outputs": ["*.nupkg"]
+    },
+    "@untrace/sdk-csharp#test": {
+      "dependsOn": ["^build"],
+      "outputs": ["TestResults/**", "coverage/**"]
+    },
     "@untrace/sdk-elixir#build": {
       "dependsOn": ["^build"],
       "outputs": ["_build/**"]

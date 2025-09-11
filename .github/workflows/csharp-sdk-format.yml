@@ -1,0 +1,52 @@
+name: C# SDK Format
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'sdks/csharp/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'sdks/csharp/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FORCE_COLOR: 3
+  TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+
+jobs:
+  format:
+    name: Format C# SDK
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        working-directory: sdks/csharp
+        run: dotnet restore
+
+      - name: Check formatting
+        working-directory: sdks/csharp
+        run: dotnet format --verify-no-changes --verbosity diagnostic
+
+      - name: Check examples formatting
+        working-directory: sdks/csharp/examples
+        run: |
+          dotnet restore
+          dotnet format --verify-no-changes --verbosity diagnostic

@@ -1,0 +1,181 @@
+name: C# SDK Test
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'sdks/csharp/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'sdks/csharp/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FORCE_COLOR: 3
+  TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+
+jobs:
+  test:
+    name: Test C# SDK
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dotnet-version: ['8.0.x', '9.0.x']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ matrix.dotnet-version }}
+
+      - name: Restore dependencies
+        working-directory: sdks/csharp
+        run: dotnet restore
+
+      - name: Build
+        working-directory: sdks/csharp
+        run: dotnet build --no-restore
+
+      - name: Run tests
+        working-directory: sdks/csharp
+        run: dotnet test --no-build --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./TestResults
+
+      - name: Generate coverage report
+        working-directory: sdks/csharp
+        run: |
+          dotnet tool install -g dotnet-reportgenerator-globaltool
+          reportgenerator -reports:"./TestResults/**/coverage.cobertura.xml" -targetdir:"./coverage" -reporttypes:"Cobertura"
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: sdks/csharp/coverage/Cobertura.xml
+          flags: csharp-sdk
+          name: csharp-sdk-coverage
+          fail_ci_if_error: false
+
+  lint:
+    name: Lint C# SDK
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        working-directory: sdks/csharp
+        run: dotnet restore
+
+      - name: Run dotnet format check
+        working-directory: sdks/csharp
+        run: dotnet format --verify-no-changes --verbosity diagnostic
+
+      - name: Run analyzers
+        working-directory: sdks/csharp
+        run: dotnet build --no-restore --verbosity normal
+
+  build:
+    name: Build C# SDK
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        dotnet-version: ['8.0.x']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ matrix.dotnet-version }}
+
+      - name: Restore dependencies
+        working-directory: sdks/csharp
+        run: dotnet restore
+
+      - name: Build for ${{ matrix.os }}
+        working-directory: sdks/csharp
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Pack
+        working-directory: sdks/csharp
+        run: dotnet pack --configuration Release --no-build --output ./packages
+
+  examples:
+    name: Test C# Examples
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        working-directory: sdks/csharp
+        run: dotnet restore
+
+      - name: Build examples
+        working-directory: sdks/csharp/examples
+        run: |
+          dotnet restore
+          dotnet build
+
+      - name: Run examples
+        working-directory: sdks/csharp/examples
+        run: dotnet run --no-build
+        env:
+          UNTRACE_API_KEY: "demo-api-key"
+
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Install security tools
+        run: |
+          dotnet tool install --global security-scan
+
+      - name: Run security audit
+        working-directory: sdks/csharp
+        run: |
+          dotnet list package --vulnerable --include-transitive
+          security-scan --project sdks/csharp/Untrace.csproj
