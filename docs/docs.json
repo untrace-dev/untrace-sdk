@@ -79,16 +79,17 @@
         "groups": [
           {
             "group": "Get Started",
-            "pages": ["introduction", "quickstart", "providers"]
+            "pages": ["introduction", "quickstart"]
           },
           {
             "group": "Core Features",
-            "pages": ["dashboard", "sdk"]
+            "pages": ["dashboard", "sdk", "providers", "routing"]
           },
           {
             "group": "SDK Reference",
             "pages": [
               "sdk-overview",
+              "sdk",
               "sdk-python",
               "sdk-go",
               "sdk-rust",
@@ -98,15 +99,20 @@
           },
           {
             "group": "Advanced",
-            "pages": ["routing", "security", "configuration"]
+            "pages": ["security", "configuration"]
           },
           {
             "group": "Reference",
-            "pages": ["architecture", "essentials/data-model"]
+            "pages": [
+              "architecture",
+              "essentials/data-model",
+              "essentials/code",
+              "essentials/markdown"
+            ]
           },
           {
             "group": "Development",
-            "pages": ["contributing"]
+            "pages": ["contributing", "snippets/snippet-intro"]
           }
         ],
         "tab": "Documentation"
@@ -120,9 +126,10 @@
           {
             "group": "Trace Management",
             "pages": [
-              "api-reference/endpoint/send-trace",
-              "api-reference/endpoint/get-traces",
-              "api-reference/endpoint/get-trace"
+              "api-reference/endpoint/create",
+              "api-reference/endpoint/get",
+              "api-reference/endpoint/delete",
+              "api-reference/endpoint/webhook"
             ]
           },
           {

@@ -5,12 +5,12 @@ description: "Intelligently route LLM traces to different observability platform
 
 <img
   className="block dark:hidden"
-  src="/images/routing-light.png"
+  src="/images/cover-light.png"
   alt="Untrace Routing Light"
 />
 <img
   className="hidden dark:block"
-  src="/images/routing-dark.png"
+  src="/images/cover-dark.png"
   alt="Untrace Routing Dark"
 />
 
@@ -79,12 +79,12 @@ rules:
     condition:
       model: "gpt-4"
     destination: "langsmith"
-    
+
   - name: "Claude to Langfuse"
     condition:
       model: "claude-*"
     destination: "langfuse"
-    
+
   - name: "Everything else"
     condition: true  # Default rule
     destination: "default-platform"
@@ -103,7 +103,7 @@ rules:
       - platform: "langsmith"
         project: "production-monitoring"
       - platform: "datadog"  # Send to multiple platforms
-    
+
   - name: "Development Traces"
     condition:
       environment: "development"
@@ -185,18 +185,18 @@ Sample based on multiple factors:
 ```yaml
 sampling:
   default_rate: 0.05  # 5% baseline
-  
+
   rules:
     # Always capture errors
     - condition:
         error: true
       rate: 1.0  # 100%
-    
+
     # Higher sampling for expensive requests
     - condition:
         cost: "> 1.00"
       rate: 0.5  # 50%
-    
+
     # Lower sampling for high-volume endpoints
     - condition:
         endpoint: "/api/chat"
@@ -233,7 +233,7 @@ rules:
       - platform: "langsmith"
         tags: ["high-cost", "analyze"]
       - platform: "cost-analytics"
-  
+
   # Budget-friendly routing
   - name: "Low-cost Requests"
     condition:
@@ -274,14 +274,14 @@ rules:
         alert: "rate-limit-hit"
       - platform: "autoscaler"
         action: "scale-up"
-  
+
   # Timeout errors
   - name: "Timeouts"
     condition:
       error:
         type: "timeout"
     destination: "performance-debugging"
-  
+
   # All other errors
   - name: "General Errors"
     condition:
@@ -317,7 +317,7 @@ rules:
       tags:
         customer_tier: "enterprise"
     destination: "premium-monitoring"
-    
+
   - name: "ML Research Team"
     condition:
       tags:
@@ -358,19 +358,19 @@ rules:
         - error: true
         - tags.severity: "critical"
     destination: "emergency-monitoring"
-    
+
   # Priority 2: High-value customers
   - name: "VIP Customers"
     condition:
       tags.customer_tier: "vip"
     destination: "premium-monitoring"
-    
+
   # Priority 3: General errors
   - name: "All Errors"
     condition:
       error: true
     destination: "error-tracking"
-    
+
   # Priority 4: Default
   - name: "Default"
     condition: true
@@ -395,12 +395,12 @@ destinations:
     platform: "langsmith"
     api_key: "${LANGSMITH_API_KEY}"
     project: "main"
-    
+
   langfuse:
     platform: "langfuse"
     public_key: "${LANGFUSE_PUBLIC_KEY}"
     secret_key: "${LANGFUSE_SECRET_KEY}"
-    
+
   debug_webhook:
     platform: "webhook"
     url: "https://debug.company.com/traces"
@@ -417,19 +417,19 @@ rules:
     destinations: ["langsmith"]
     sampling:
       rate: 0.5
-      
+
   # Development rules
   - name: "Dev Environment"
     condition:
       environment: "development"
     destinations: ["langfuse"]
-    
+
   # Error handling
   - name: "All Errors"
     condition:
       error: true
     destinations: ["langsmith", "debug_webhook"]
-    
+
   # Default rule
   - name: "Catch All"
     condition: true

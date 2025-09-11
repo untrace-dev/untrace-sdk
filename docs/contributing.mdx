@@ -7,7 +7,7 @@ description: 'Contribute to Untrace and run it locally'
   **Prerequisites**:
   - Node.js (version 18 or higher)
   - Git
-  - A webhook provider account (Stripe, GitHub, etc.) for testing
+  - An LLM provider account (OpenAI, Anthropic, etc.) for testing
 </Info>
 
 ## Local Development Setup
@@ -47,21 +47,29 @@ npm run dev
 ```
 
 This will start:
-- The CLI webhook service on port 3000
+- The API server on port 3000
 - The web dashboard on port 3001
-- The webhook processing service on port 3002
+- The trace processing service on port 3002
 
 ## Project Structure
 
 ```plaintext
-untrace/
+untrace-sdk/
 ├── packages/
-│   ├── cli/          # Command line interface
-│   ├── core/         # Core webhook processing logic
-│   ├── dashboard/    # Web dashboard (Next.js)
-│   └── shared/       # Shared utilities and types
-├── examples/         # Example integrations
-└── docs/            # Documentation
+│   ├── analytics/    # Analytics components
+│   ├── destinations/ # Integration destinations
+│   ├── logger/       # Logging utilities
+│   ├── ui/          # UI components
+│   └── utils/       # Shared utilities
+├── sdks/            # Language-specific SDKs
+│   ├── js/          # JavaScript/TypeScript SDK
+│   ├── python/      # Python SDK
+│   ├── go/          # Go SDK
+│   ├── rust/        # Rust SDK
+│   ├── csharp/      # C#/.NET SDK
+│   └── elixir/      # Elixir SDK
+├── docs/            # Documentation
+└── examples/        # Example integrations
 ```
 
 ## Development Workflow
@@ -78,7 +86,7 @@ npm test
 npm test -- --watch
 
 # Run tests for a specific package
-npm test -- packages/cli
+npm test -- packages/analytics
 ```
 
 ### Linting and Formatting
@@ -107,7 +115,7 @@ npm run build
 To build a specific package:
 
 ```bash
-npm run build --workspace=@untrace/cli
+npm run build --workspace=@untrace/analytics
 ```
 
 ## Running Examples
@@ -116,7 +124,7 @@ We provide example integrations in the `examples/` directory. To run an example:
 
 ```bash
 # Navigate to an example
-cd examples/stripe-webhook
+cd examples/basic-usage
 
 # Install dependencies
 npm install
@@ -127,16 +135,16 @@ npm run dev
 
 ## Debugging
 
-### CLI Debugging
+### SDK Debugging
 
-Run the CLI with debug logging:
+Run the SDK with debug logging:
 
 ```bash
 # Using npm
-npm run dev:cli -- --debug
+npm run dev:sdk -- --debug
 
 # Direct binary
-./packages/cli/bin/run --debug
+./packages/analytics/bin/run --debug
 ```
 
 ### Dashboard Debugging
@@ -155,14 +163,14 @@ npm run dev:dashboard
     If port 3000, 3001, or 3002 is already in use, you can specify different ports:
 
     ```bash
-    # For CLI
-    npm run dev:cli -- --port 4000
+    # For API server
+    PORT=4000 npm run dev:api
 
     # For dashboard
     PORT=4001 npm run dev:dashboard
 
-    # For webhook service
-    WEBHOOK_PORT=4002 npm run dev:service
+    # For trace service
+    TRACE_PORT=4002 npm run dev:service
     ```
   </Accordion>
 
@@ -170,7 +178,7 @@ npm run dev:dashboard
     During development, you can use test API keys:
     ```bash
     # Test mode
-    npm run dev:cli -- --webhook-id t_test_123
+    UNTRACE_API_KEY=test_key npm run dev
     ```
   </Accordion>
 </AccordionGroup>
@@ -220,10 +228,10 @@ We welcome contributions! Here's how you can help:
     Learn how to test your changes
   </Card>
   <Card
-    title="Provider Development"
-    icon="plug"
-    href="/provider-dev"
+    title="SDK Development"
+    icon="code"
+    href="/sdk"
   >
-    Create integrations for new webhook providers
+    Create integrations for new programming languages
   </Card>
 </CardGroup>

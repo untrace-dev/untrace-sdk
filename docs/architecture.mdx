@@ -1,11 +1,11 @@
 ---
 title: 'Architecture'
-# description: 'Understanding Untrace\'s system design and data flow'
+description: 'Understanding Untrace\'s system design and data flow for LLM observability'
 ---
 
 ## System Overview
 
-Untrace consists of several key components working together to provide seamless webhook development:
+Untrace consists of several key components working together to provide seamless LLM observability:
 
 <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
   <img src="/images/arch.png" alt="Untrace Architecture" />
@@ -14,20 +14,20 @@ Untrace consists of several key components working together to provide seamless 
 ## Data Flow Steps
 
 <Steps>
-  <Step title="Webhook Reception">
-    - Provider sends webhook to `https://untrace.sh/t_123?e=ENDPOINT`
-    - API validates the API key and processes the request
-    - Event is stored in the database
+  <Step title="Trace Capture">
+    - SDK captures LLM traces from your applications
+    - Traces include model calls, token usage, costs, and metadata
+    - Data is sent to Untrace API for processing
   </Step>
-  <Step title="Real-time Distribution">
-    - CLI clients subscribe to new events
-    - Database triggers notify connected clients
-    - Events are delivered to local development servers
+  <Step title="Intelligent Routing">
+    - Routing engine evaluates traces against configured rules
+    - Traces are routed to appropriate observability platforms
+    - Multiple destinations can receive the same trace
   </Step>
-  <Step title="Local Processing">
-    - CLI delivers requests to specified port or URL
-    - Responses are captured and stored
-    - Results are visible in the dashboard
+  <Step title="Platform Delivery">
+    - Traces are delivered to LangSmith, Langfuse, and other platforms
+    - Real-time monitoring and analytics are available
+    - Results are visible in the Untrace dashboard
   </Step>
 </Steps>
 
@@ -37,8 +37,7 @@ Untrace consists of several key components working together to provide seamless 
 
 #### Users and Organizations
 
-
-#### Webhooks and Connections
+#### Traces and Integrations
 
 ### Key Tables
 
@@ -59,59 +58,81 @@ interface User {
 interface Org {
   id: string;
   createdByUserId: string;
-  clerkOrgId?: string;
+  name: string;
+  plan: 'free' | 'pro' | 'enterprise';
 }
 ```
 
-#### Webhooks
+#### Traces
 ```typescript
-interface Webhook {
+interface Trace {
   id: string;
-  clientId: string;
-  port: number;
-  status: 'active' | 'inactive';
-  localConnectionStatus: 'connected' | 'disconnected';
-  config: WebhookConfig;
   userId: string;
   orgId: string;
+  model: string;
+  provider: string;
+  operation: 'chat' | 'completion' | 'embedding';
+  input: TraceInput;
+  output: TraceOutput;
+  metrics: TraceMetrics;
+  metadata: Record<string, any>;
+  status: 'success' | 'error' | 'timeout';
+  timestamp: Date;
 }
 ```
 
-#### Events
+#### Integrations
 ```typescript
-interface Event {
+interface Integration {
   id: string;
-  webhookId: string;
-  originalRequest: RequestPayload;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  retryCount: number;
-  maxRetries: number;
+  orgId: string;
+  platform: 'langsmith' | 'langfuse' | 'keywords' | 'webhook';
+  config: IntegrationConfig;
+  status: 'active' | 'inactive' | 'error';
+  lastSyncAt?: Date;
 }
 ```
 
 ### Configuration Types
 
-#### Webhook Configuration
+#### Trace Configuration
 ```typescript
-interface WebhookConfig {
-  storage: {
-    storeHeaders: boolean;
-    storeRequestBody: boolean;
-    storeResponseBody: boolean;
-    maxRequestBodySize: number;
-    maxResponseBodySize: number;
+interface TraceConfig {
+  sampling: {
+    rate: number;
+    rules: SamplingRule[];
   };
-  headers: {
-    allowList?: string[];
-    blockList?: string[];
-    sensitiveHeaders?: string[];
+  routing: {
+    rules: RoutingRule[];
+    defaultDestination: string;
   };
-  requests: {
-    allowedMethods?: string[];
-    allowedFrom?: string[];
-    blockedFrom?: string[];
-    maxRequestsPerMinute?: number;
-    maxRetries?: number;
+  privacy: {
+    piiDetection: boolean;
+    redactionMethod: 'hash' | 'mask' | 'remove';
+    customPatterns: PIIPattern[];
+  };
+  performance: {
+    maxBatchSize: number;
+    exportIntervalMs: number;
+    compression: boolean;
+  };
+}
+```
+
+#### Integration Configuration
+```typescript
+interface IntegrationConfig {
+  platform: string;
+  credentials: Record<string, string>;
+  settings: {
+    batchSize?: number;
+    timeout?: number;
+    retryAttempts?: number;
+  };
+  filters?: {
+    models?: string[];
+    environments?: string[];
+    tags?: string[];
   };
 }
 ```
@@ -121,52 +142,53 @@ interface WebhookConfig {
 ### API Server
 
 The API server handles:
-- Webhook reception and validation
-- Event storage and distribution
+- Trace reception and validation
+- Routing rule evaluation
+- Integration delivery
 - Authentication and authorization
 - Team management
-- Real-time updates
+- Real-time analytics
 
-### CLI Client
+### SDK Libraries
 
-The CLI client manages:
-- Local webhook connections
-- Event subscription
-- Request delivery
-- Health monitoring
-- Debug logging
+The SDK libraries provide:
+- Automatic LLM instrumentation
+- Trace capture and batching
+- Local configuration management
+- Error handling and retries
+- Performance optimization
 
 ### Dashboard
 
 The web dashboard provides:
-- Real-time event monitoring
-- Team management
-- Configuration controls
-- Analytics and debugging
-- Request/response inspection
+- Real-time trace monitoring
+- Routing configuration
+- Integration management
+- Analytics and insights
+- Team collaboration
 
 ## Security Model
 
 1. **API Authentication**
-   - API keys for webhook endpoints
+   - API keys for trace ingestion
    - JWT tokens for dashboard access
    - Role-based access control
 
 2. **Data Privacy**
-   - Configurable header filtering
-   - Request/response body size limits
-   - Sensitive data redaction
+   - Automatic PII detection and redaction
+   - Configurable data retention policies
+   - Field-level encryption
 
 3. **Team Access**
    - Organization-based isolation
    - Member role management
-   - Shared webhook endpoints
+   - Shared trace visibility
 
 ## Scaling Considerations
 
 1. **Database**
-   - Real-time notification system
-   - Event archival strategy
+   - Trace archival and compression
+   - Real-time analytics indexing
    - Connection pooling
 
 2. **API Layer**
@@ -174,10 +196,10 @@ The web dashboard provides:
    - Load balancing
    - Regional distribution
 
-3. **Event Processing**
-   - Retry mechanisms
-   - Failure handling
-   - Queue management
+3. **Trace Processing**
+   - Batch processing for high volume
+   - Retry mechanisms for failed deliveries
+   - Queue management for routing
 
 ## Development Setup
 
@@ -195,15 +217,16 @@ docker compose up db
 npm run dev:api
 ```
 
-3. **CLI Development**
+3. **SDK Development**
 ```bash
-# Build and run CLI
-npm run dev:cli
+# Build and test SDKs
+npm run build:sdks
+npm run test:sdks
 ```
 
 ## Best Practices
 
-1. **Event Handling**
+1. **Trace Handling**
    - Implement proper retry logic
    - Handle timeouts gracefully
    - Log relevant debugging info
@@ -214,6 +237,6 @@ npm run dev:cli
    - Review access logs
 
 3. **Team Workflow**
-   - Use meaningful client IDs
-   - Configure appropriate timeouts
-   - Set up health checks
+   - Use meaningful service names
+   - Configure appropriate sampling rates
+   - Set up monitoring alerts

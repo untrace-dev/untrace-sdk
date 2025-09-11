@@ -5,12 +5,12 @@ description: "Security features and best practices for protecting your LLM trace
 
 <img
   className="block dark:hidden"
-  src="/images/security-light.png"
+  src="/images/cover-light.png"
   alt="Untrace Security Light"
 />
 <img
   className="hidden dark:block"
-  src="/images/security-dark.png"
+  src="/images/cover-dark.png"
   alt="Untrace Security Dark"
 />
 
@@ -75,7 +75,7 @@ Choose how sensitive data is handled:
     ```typescript
     // Original: "Contact john.doe@example.com"
     // Redacted: "Contact [EMAIL_HASH:a1b2c3d4]"
-    
+
     init({
       piiDetection: {
         enabled: true,
@@ -88,7 +88,7 @@ Choose how sensitive data is handled:
     ```typescript
     // Original: "SSN: 123-45-6789"
     // Redacted: "SSN: XXX-XX-XXXX"
-    
+
     init({
       piiDetection: {
         enabled: true,
@@ -101,7 +101,7 @@ Choose how sensitive data is handled:
     ```typescript
     // Original: "Call me at 555-123-4567"
     // Redacted: "Call me at [REDACTED]"
-    
+
     init({
       piiDetection: {
         enabled: true,
@@ -280,12 +280,12 @@ security:
     - 10.0.0.0/8      # Internal network
     - 172.16.0.0/12   # Private subnet
     - 52.44.0.0/16    # AWS region
-  
+
   # Per-environment configuration
   production:
     allowedIPs:
       - 10.1.0.0/16   # Production VPC
-  
+
   development:
     allowedIPs:
       - 0.0.0.0/0     # Allow all (dev only!)
@@ -355,7 +355,7 @@ retention:
     byEnvironment:
       production: 90d
       development: 7d
-  
+
   # Automatic deletion rules
   rules:
     - condition: "contains_pii"
@@ -541,10 +541,10 @@ Real-time security notifications:
    ```bash
    # Production
    UNTRACE_API_KEY=utr_prod_xxx
-   
+
    # Staging
    UNTRACE_API_KEY=utr_stage_xxx
-   
+
    # Development
    UNTRACE_API_KEY=utr_dev_xxx
    ```
@@ -595,7 +595,7 @@ Real-time security notifications:
    ```typescript
    // Bad: Including full user object
    span.setAttribute('user', userObject);
-   
+
    // Good: Only necessary fields
    span.setAttribute('user.id', user.id);
    span.setAttribute('user.tier', user.subscriptionTier);
