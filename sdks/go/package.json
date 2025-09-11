@@ -1,0 +1,19 @@
+{
+  "author": "Untrace",
+  "description": "LLM observability SDK for Go applications",
+  "keywords": [
+    "go",
+    "sdk",
+    "observability",
+    "llm",
+    "tracing"
+  ],
+  "license": "MIT",
+  "main": "untrace.go",
+  "name": "untrace-go-sdk",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/untrace-dev/untrace-sdk.git"
+  },
+  "version": "0.1.0"
+}

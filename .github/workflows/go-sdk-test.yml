@@ -1,0 +1,135 @@
+name: Go SDK Test
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'sdks/go/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'sdks/go/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FORCE_COLOR: 3
+  TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+
+jobs:
+  test:
+    name: Test Go SDK
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ['1.21', '1.22']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache: true
+
+      - name: Install dependencies
+        working-directory: sdks/go
+        run: go mod download
+
+      - name: Run tests
+        working-directory: sdks/go
+        run: go test ./... -v -race -coverprofile=coverage.out
+
+      - name: Generate coverage report
+        working-directory: sdks/go
+        run: go tool cover -html=coverage.out -o coverage.html
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: sdks/go/coverage.out
+          flags: go-sdk
+          name: go-sdk-coverage
+          fail_ci_if_error: false
+
+  lint:
+    name: Lint Go SDK
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Install Go tools
+        run: |
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
+      - name: Run linting
+        working-directory: sdks/go
+        run: golangci-lint run --timeout=5m
+
+  build:
+    name: Build Go SDK
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, darwin, windows]
+        goarch: [amd64, arm64]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Build for ${{ matrix.goos }}/${{ matrix.goarch }}
+        working-directory: sdks/go
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: go build ./...
+
+  examples:
+    name: Test Go Examples
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Build examples
+        working-directory: sdks/go/examples
+        run: |
+          go mod tidy
+          go build ./...
