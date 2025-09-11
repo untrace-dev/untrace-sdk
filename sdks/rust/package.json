@@ -1,0 +1,51 @@
+{
+	"author": "Untrace Team <hello@untrace.dev>",
+	"bugs": {
+		"url": "https://github.com/untrace-dev/untrace-sdk/issues"
+	},
+	"description": "LLM observability SDK for Rust",
+	"engines": {
+		"rust": ">=1.70.0"
+	},
+	"files": [
+		"src/",
+		"examples/",
+		"Cargo.toml",
+		"README.md"
+	],
+	"homepage": "https://github.com/untrace-dev/untrace-sdk#readme",
+	"keywords": [
+		"llm",
+		"observability",
+		"tracing",
+		"monitoring",
+		"rust",
+		"opentelemetry"
+	],
+	"license": "MIT",
+	"main": "src/lib.rs",
+	"name": "@untrace/sdk-rust",
+	"repository": {
+		"directory": "sdks/rust",
+		"type": "git",
+		"url": "https://github.com/untrace-dev/untrace-sdk.git"
+	},
+	"scripts": {
+		"bench": "cargo bench",
+		"build": "cargo build",
+		"build:release": "cargo build --release",
+		"check": "cargo check",
+		"clean": "cargo clean",
+		"clippy": "cargo clippy",
+		"doc": "cargo doc --open",
+		"doc:check": "cargo doc --no-deps",
+		"example:basic": "cargo run --example basic",
+		"example:environment": "cargo run --example environment",
+		"example:instrumentation": "cargo run --example instrumentation",
+		"fmt": "cargo fmt",
+		"fmt:check": "cargo fmt -- --check",
+		"test": "cargo test",
+		"test:watch": "cargo watch -x test"
+	},
+	"version": "0.1.2"
+}

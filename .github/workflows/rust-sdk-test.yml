@@ -1,0 +1,226 @@
+name: Rust SDK Test
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'sdks/rust/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'sdks/rust/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FORCE_COLOR: 3
+  TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+
+jobs:
+  test:
+    name: Test Rust SDK
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust-version: ['1.70', '1.71', '1.72', '1.73', '1.74', '1.75']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust-version }}
+          components: rustfmt, clippy
+          override: true
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            sdks/rust/target
+          key: ${{ runner.os }}-rust-${{ matrix.rust-version }}-${{ hashFiles('sdks/rust/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-rust-${{ matrix.rust-version }}-
+            ${{ runner.os }}-rust-
+
+      - name: Install dependencies
+        working-directory: sdks/rust
+        run: cargo fetch
+
+      - name: Run tests
+        working-directory: sdks/rust
+        run: cargo test --verbose
+
+      - name: Run tests with coverage
+        working-directory: sdks/rust
+        run: |
+          cargo install cargo-tarpaulin
+          cargo tarpaulin --out Xml --output-dir target/coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: sdks/rust/target/coverage/cobertura.xml
+          flags: rust-sdk
+          name: rust-sdk-coverage
+          fail_ci_if_error: false
+
+  lint:
+    name: Lint Rust SDK
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+          override: true
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            sdks/rust/target
+          key: ${{ runner.os }}-rust-stable-${{ hashFiles('sdks/rust/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-rust-stable-
+            ${{ runner.os }}-rust-
+
+      - name: Install dependencies
+        working-directory: sdks/rust
+        run: cargo fetch
+
+      - name: Run clippy
+        working-directory: sdks/rust
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Check formatting
+        working-directory: sdks/rust
+        run: cargo fmt -- --check
+
+      - name: Check documentation
+        working-directory: sdks/rust
+        run: cargo doc --no-deps --document-private-items
+
+  build:
+    name: Build Rust SDK
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [x86_64-unknown-linux-gnu, x86_64-apple-darwin, x86_64-pc-windows-msvc]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+          override: true
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            sdks/rust/target
+          key: ${{ runner.os }}-rust-stable-${{ matrix.target }}-${{ hashFiles('sdks/rust/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-rust-stable-${{ matrix.target }}-
+            ${{ runner.os }}-rust-stable-
+            ${{ runner.os }}-rust-
+
+      - name: Install dependencies
+        working-directory: sdks/rust
+        run: cargo fetch
+
+      - name: Build for ${{ matrix.target }}
+        working-directory: sdks/rust
+        run: cargo build --release --target ${{ matrix.target }}
+
+  examples:
+    name: Test Rust Examples
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            sdks/rust/target
+          key: ${{ runner.os }}-rust-stable-${{ hashFiles('sdks/rust/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-rust-stable-
+            ${{ runner.os }}-rust-
+
+      - name: Install dependencies
+        working-directory: sdks/rust
+        run: cargo fetch
+
+      - name: Build examples
+        working-directory: sdks/rust
+        run: |
+          cargo build --examples
+          cargo run --example basic
+          cargo run --example environment
+          cargo run --example instrumentation
+
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+
+      - name: Run security audit
+        working-directory: sdks/rust
+        run: cargo audit

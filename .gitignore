@@ -56,3 +56,29 @@ dist/
 
 # turbo
 .turbo
+
+# rust
+target/
+Cargo.lock
+**/*.rs.bk
+*.pdb
+
+# go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+go.work.sum
+
+# elixir
+_build/
+cover/
+deps/
+doc/
+.elixir_ls/
+*.beam
+erl_crash.dump

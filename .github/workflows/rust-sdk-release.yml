@@ -1,0 +1,207 @@
+name: Rust SDK Release
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Changeset NPM Release"]
+    types:
+      - completed
+    branches:
+      - main
+
+permissions:
+  contents: write
+  packages: write
+  actions: read
+
+env:
+  FORCE_COLOR: 3
+  TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    outputs:
+      is_version_bump: ${{ steps.check.outputs.is_version_bump }}
+      rust_version_changed: ${{ steps.check-rust.outputs.version_changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - id: check
+        run: |
+          if [[ "${{ github.event.workflow_run.head_commit.message }}" =~ ^chore:\ version\ packages.*$ ]]; then
+            echo "is_version_bump=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_version_bump=false" >> $GITHUB_OUTPUT
+          fi
+
+      - id: check-rust
+        name: Check if Rust SDK version changed
+        run: |
+          # Check if the Rust SDK version was bumped in Cargo.toml
+          if git diff HEAD~1 HEAD -- sdks/rust/Cargo.toml | grep -q 'version ='; then
+            echo "version_changed=true" >> $GITHUB_OUTPUT
+            echo "Rust SDK version was changed in Cargo.toml"
+          else
+            echo "version_changed=false" >> $GITHUB_OUTPUT
+            echo "Rust SDK version was not changed in Cargo.toml"
+          fi
+
+  release:
+    name: Release Rust SDK
+    needs: check-version
+    runs-on: ubuntu-latest
+    if: needs.check-version.outputs.is_version_bump == 'true' && needs.check-version.outputs.rust_version_changed == 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Need full history for Changesets
+          fetch-depth: 0
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+          override: true
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            sdks/rust/target
+          key: ${{ runner.os }}-rust-stable-${{ hashFiles('sdks/rust/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-rust-stable-
+            ${{ runner.os }}-rust-
+
+      - name: Get version from package.json
+        id: version
+        run: |
+          VERSION=$(node -p "require('./sdks/rust/package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update Cargo.toml version
+        working-directory: sdks/rust
+        run: |
+          # Update the version in Cargo.toml to match package.json
+          sed -i "s/^version = .*/version = \"${{ steps.version.outputs.version }}\"/" Cargo.toml
+          echo "Updated Cargo.toml version to ${{ steps.version.outputs.version }}"
+
+      - name: Verify Cargo.toml
+        working-directory: sdks/rust
+        run: |
+          cargo check
+          echo "Cargo.toml verification successful"
+
+      - name: Run tests before release
+        working-directory: sdks/rust
+        run: |
+          cargo test --verbose
+          cargo clippy --all-targets --all-features -- -D warnings
+          cargo fmt -- --check
+
+      - name: Build package
+        working-directory: sdks/rust
+        run: cargo build --release
+
+      - name: Create package
+        working-directory: sdks/rust
+        run: cargo package
+
+      - name: Publish to crates.io
+        working-directory: sdks/rust
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish --token $CARGO_REGISTRY_TOKEN
+
+      - name: Create and push Git tag
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git tag -a "rust-sdk-v${{ steps.version.outputs.version }}" -m "Rust SDK v${{ steps.version.outputs.version }}"
+          git push origin "rust-sdk-v${{ steps.version.outputs.version }}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: rust-sdk-v${{ steps.version.outputs.version }}
+          name: Rust SDK v${{ steps.version.outputs.version }}
+          body: |
+            Release of Rust SDK v${{ steps.version.outputs.version }}
+
+            This release includes:
+            - Rust crate published to crates.io
+            - Version: ${{ steps.version.outputs.version }}
+            - Install with: `cargo add untrace-sdk`
+
+            ## Installation
+
+            Add this to your `Cargo.toml`:
+
+            ```toml
+            [dependencies]
+            untrace-sdk = "${{ steps.version.outputs.version }}"
+            ```
+
+            Or install directly:
+
+            ```bash
+            cargo add untrace-sdk
+            ```
+
+            ## Usage
+
+            ```rust
+            use untrace_sdk::{Untrace, Config, Span};
+
+            #[tokio::main]
+            async fn main() -> Result<(), Box<dyn std::error::Error>> {
+                let config = Config::new("your-api-key".to_string())
+                    .with_service_name("my-llm-app".to_string());
+
+                let _untrace = Untrace::init(config).await?;
+
+                // Your LLM application code here
+                let mut span = Untrace::start_span("my-operation");
+                // ... do work ...
+                span.end();
+
+                Ok(())
+            }
+            ```
+
+            ## Features
+
+            - OpenTelemetry-based tracing
+            - LLM-specific span creation
+            - Workflow tracking and context management
+            - Metrics collection (token usage, costs, latency)
+            - Provider registry for multiple LLM services
+            - Environment-based configuration
+            - Comprehensive error handling
+            - Full async/await support
+
+            ## Documentation
+
+            - [API Documentation](https://docs.rs/untrace-sdk/${{ steps.version.outputs.version }})
+            - [GitHub Repository](https://github.com/untrace-dev/untrace-sdk)
+            - [Examples](https://github.com/untrace-dev/untrace-sdk/tree/main/sdks/rust/examples)
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify crates.io
+        run: |
+          # The crates.io registry will automatically pick up the new version
+          # We can make a request to ensure it's processed
+          curl "https://crates.io/api/v1/crates/untrace-sdk"

@@ -1,0 +1,67 @@
+[package]
+name = "untrace-sdk"
+version = "0.1.2"
+edition = "2021"
+authors = ["Untrace Team <hello@untrace.dev>"]
+description = "LLM observability SDK for Rust"
+license = "MIT"
+repository = "https://github.com/untrace-dev/untrace-sdk"
+homepage = "https://github.com/untrace-dev/untrace-sdk"
+documentation = "https://docs.untrace.dev"
+keywords = ["llm", "observability", "tracing", "monitoring", "opentelemetry"]
+categories = ["development-tools", "web-programming"]
+
+[dependencies]
+# OpenTelemetry dependencies
+opentelemetry = { version = "0.21", features = ["trace", "metrics"] }
+opentelemetry_sdk = { version = "0.21", features = ["rt-tokio", "trace", "metrics"] }
+opentelemetry-otlp = { version = "0.14", features = ["http-proto", "trace", "metrics"] }
+opentelemetry-semantic-conventions = "0.12"
+
+# HTTP client
+reqwest = { version = "0.11", features = ["json"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Async runtime
+tokio = { version = "1.0", features = ["full"] }
+
+# Error handling
+thiserror = "1.0"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# UUID generation
+uuid = { version = "1.0", features = ["v4", "serde"] }
+
+# Time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# URL parsing
+url = "2.0"
+
+# Async traits
+async-trait = "0.1"
+
+[dev-dependencies]
+tokio-test = "0.4"
+
+[lib]
+name = "untrace"
+path = "src/lib.rs"
+
+[[example]]
+name = "basic"
+path = "examples/basic.rs"
+
+[[example]]
+name = "environment"
+path = "examples/environment.rs"
+
+[[example]]
+name = "instrumentation"
+path = "examples/instrumentation.rs"
