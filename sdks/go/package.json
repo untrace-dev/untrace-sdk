@@ -10,7 +10,7 @@
   ],
   "license": "MIT",
   "main": "untrace.go",
-  "name": "untrace-go-sdk",
+  "name": "@untrace/sdk-go",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/untrace-dev/untrace-sdk.git"
