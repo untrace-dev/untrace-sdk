@@ -142,7 +142,7 @@ Supervisor.start_link(children, strategy: :one_for_one)
 ```elixir
 %{
   api_key: "your-api-key",           # Required
-  base_url: "https://api.untrace.dev", # Optional, defaults to https://api.untrace.dev
+  base_url: "https://untrace.dev/api", # Optional, defaults to https://untrace.dev/api
   timeout: 30_000,                   # Optional, defaults to 30 seconds
   name: :untrace_client              # Optional, for named process
 }
@@ -155,7 +155,7 @@ The SDK supports configuration via environment variables:
 ```bash
 # Core settings
 export UNTRACE_API_KEY="your-api-key"
-export UNTRACE_BASE_URL="https://api.untrace.dev"
+export UNTRACE_BASE_URL="https://untrace.dev/api"
 export UNTRACE_DEBUG="true"
 
 # OpenTelemetry settings
@@ -171,7 +171,7 @@ import Config
 
 config :untrace_sdk,
   api_key: System.get_env("UNTRACE_API_KEY"),
-  base_url: System.get_env("UNTRACE_BASE_URL", "https://api.untrace.dev"),
+  base_url: System.get_env("UNTRACE_BASE_URL", "https://untrace.dev/api"),
   timeout: String.to_integer(System.get_env("UNTRACE_TIMEOUT", "30000")),
   debug: System.get_env("UNTRACE_DEBUG") == "true"
 ```
@@ -867,7 +867,7 @@ The main client module for interacting with the Untrace API.
 ```elixir
 %{
   api_key: "your-api-key",           # Required
-  base_url: "https://api.untrace.dev", # Optional, defaults to https://api.untrace.dev
+  base_url: "https://untrace.dev/api", # Optional, defaults to https://untrace.dev/api
   timeout: 30_000,                   # Optional, defaults to 30 seconds
   name: :untrace_client              # Optional, for named process
 }

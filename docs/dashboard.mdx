@@ -495,15 +495,15 @@ Access dashboard functionality programmatically:
 
 ```bash
 # Get trace history
-curl -X GET https://api.untrace.dev/v1/traces \
+curl -X GET https://untrace.dev/api/v1/traces \
   -H "Authorization: Bearer YOUR_API_KEY"
 
 # Get analytics data
-curl -X GET https://api.untrace.dev/v1/analytics \
+curl -X GET https://untrace.dev/api/v1/analytics \
   -H "Authorization: Bearer YOUR_API_KEY"
 
 # Update routing rules
-curl -X PUT https://api.untrace.dev/v1/routing/rules \
+curl -X PUT https://untrace.dev/api/v1/routing/rules \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -d @routing-rules.json
 ```

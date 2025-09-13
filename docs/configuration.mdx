@@ -28,7 +28,7 @@ service:
 # Untrace API configuration
 api:
   key: "${UNTRACE_API_KEY}"  # Use environment variable
-  baseUrl: "https://api.untrace.dev"
+  baseUrl: "https://untrace.dev/api"
   timeout: 30000
 
 # Routing configuration
@@ -40,7 +40,7 @@ routing:
         model: "gpt-4*"
         environment: "production"
       destination: "langsmith"
-      
+
     - name: "Development"
       condition:
         environment: "development"
@@ -51,11 +51,11 @@ integrations:
   langsmith:
     apiKey: "${LANGSMITH_API_KEY}"
     project: "main"
-    
+
   langfuse:
     publicKey: "${LANGFUSE_PUBLIC_KEY}"
     secretKey: "${LANGFUSE_SECRET_KEY}"
-    
+
   webhook:
     url: "https://your-api.com/traces"
     headers:
@@ -92,12 +92,12 @@ import { init } from '@untrace/sdk';
 const untrace = init({
   // Required
   apiKey: process.env.UNTRACE_API_KEY,
-  
+
   // Service identification
   serviceName: 'my-llm-app',
   environment: process.env.NODE_ENV,
   version: '1.0.0',
-  
+
   // Routing
   routing: {
     defaultDestination: 'langfuse',
@@ -109,20 +109,20 @@ const untrace = init({
       }
     ]
   },
-  
+
   // Sampling
   samplingRate: 0.1,  // 10%
-  
+
   // Privacy
   piiDetection: {
     enabled: true,
     redactionMethod: 'mask'
   },
-  
+
   // Performance
   maxBatchSize: 100,
   exportIntervalMs: 5000,
-  
+
   // Debug
   debug: process.env.NODE_ENV === 'development'
 });
@@ -136,12 +136,12 @@ from untrace import Untrace
 untrace = Untrace(
     # Required
     api_key=os.getenv("UNTRACE_API_KEY"),
-    
+
     # Service identification
     service_name="my-llm-app",
     environment=os.getenv("ENVIRONMENT", "production"),
     version="1.0.0",
-    
+
     # Routing
     routing={
         "default_destination": "langfuse",
@@ -153,10 +153,10 @@ untrace = Untrace(
             }
         ]
     },
-    
+
     # Sampling
     sampling_rate=0.1,  # 10%
-    
+
     # Privacy
     pii_detection={
         "enabled": True,
@@ -172,7 +172,7 @@ All configuration can be set via environment variables:
 ```bash
 # Core configuration
 UNTRACE_API_KEY=utr_your_api_key
-UNTRACE_BASE_URL=https://api.untrace.dev
+UNTRACE_BASE_URL=https://untrace.dev/api
 UNTRACE_SERVICE_NAME=my-llm-app
 UNTRACE_ENVIRONMENT=production
 UNTRACE_VERSION=1.0.0
@@ -264,12 +264,12 @@ environments:
       defaultDestination: "langfuse"
     sampling: 1.0  # 100% in dev
     debug: true
-    
+
   staging:
     routing:
       defaultDestination: "langfuse"
     sampling: 0.5  # 50% in staging
-    
+
   production:
     routing:
       defaultDestination: "langsmith"
@@ -287,11 +287,11 @@ providers:
     captureStreaming: true
     captureTools: true
     captureImages: false  # Don't capture image inputs
-    
+
   anthropic:
     captureSystemPrompts: true
     maxPromptLength: 10000  # Truncate long prompts
-    
+
   langchain:
     captureIntermediateSteps: true
     captureMemory: true
@@ -307,19 +307,19 @@ performance:
     enabled: true
     maxBatchSize: 500
     maxWaitTime: 10000  # 10 seconds
-    
+
   # Compression
   compression:
     enabled: true
     algorithm: "gzip"
     level: 6
-    
+
   # Connection pooling
   connections:
     maxConcurrent: 10
     keepAlive: true
     timeout: 30000
-    
+
   # Caching
   cache:
     enabled: true
@@ -335,7 +335,7 @@ security:
   apiKey:
     primary: "${UNTRACE_API_KEY}"
     secondary: "${UNTRACE_API_KEY_SECONDARY}"  # For rotation
-    
+
   # Network security
   network:
     allowedIPs:
@@ -343,7 +343,7 @@ security:
       - "172.16.0.0/12"
     tlsVersion: "1.3"
     certificatePinning: true
-    
+
   # Data security
   data:
     encryptionAtRest: true
@@ -405,7 +405,7 @@ Common validation errors:
    ```yaml
    # Good
    apiKey: "${UNTRACE_API_KEY}"
-   
+
    # Bad
    apiKey: "utr_abc123..."  # Never commit!
    ```

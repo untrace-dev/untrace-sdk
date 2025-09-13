@@ -144,7 +144,7 @@ export class UntraceExporter implements SpanExporter {
       console.log('[UntraceExporter] Payload prepared, sending request...');
 
       const response = await fetch(exportUrl, {
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ json: payload }),
         headers: {
           Authorization: `Bearer ${this.config.apiKey}`,
           'Content-Type': 'application/json',

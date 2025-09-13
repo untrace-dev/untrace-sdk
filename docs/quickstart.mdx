@@ -32,7 +32,7 @@ description: 'Start routing LLM traces to any observability platform in under 5 
     from openai import OpenAI
 
     client = OpenAI(
-        base_url="https://api.untrace.dev/v1/proxy",
+        base_url="https://untrace.dev/api/v1/proxy",
         default_headers={
             "X-Untrace-Key": "your-api-key"
         }
@@ -75,7 +75,7 @@ from openai import OpenAI
 
 # After: Through Untrace
 client = OpenAI(
-    base_url="https://api.untrace.dev/v1/proxy",
+    base_url="https://untrace.dev/api/v1/proxy",
     default_headers={
         "X-Untrace-Key": "utr_your_api_key"
     }
@@ -96,7 +96,7 @@ import OpenAI from 'openai';
 
 // After: Through Untrace
 const openai = new OpenAI({
-  baseURL: 'https://api.untrace.dev/v1/proxy',
+  baseURL: 'https://untrace.dev/api/v1/proxy',
   defaultHeaders: {
     'X-Untrace-Key': 'utr_your_api_key'
   }
@@ -114,7 +114,7 @@ const OpenAI = require('openai');
 
 // Through Untrace proxy
 const openai = new OpenAI({
-  baseURL: 'https://api.untrace.dev/v1/proxy',
+  baseURL: 'https://untrace.dev/api/v1/proxy',
   defaultHeaders: {
     'X-Untrace-Key': 'utr_your_api_key'
   }
@@ -175,7 +175,7 @@ with untrace.trace("my-operation") as span:
 For custom integrations or other languages:
 
 ```bash
-curl -X POST https://api.untrace.dev/v1/traces \
+curl -X POST https://untrace.dev/api/v1/traces \
   -H "Authorization: Bearer utr_your_api_key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -424,7 +424,7 @@ chain = ConversationChain(llm=llm)
 
 ### No traces appearing?
 - Check your API key is correct
-- Verify network connectivity to `api.untrace.dev`
+- Verify network connectivity to `untrace.dev/api`
 - Enable debug mode to see detailed logs
 - Check the dashboard for any error messages
 
