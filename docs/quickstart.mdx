@@ -9,7 +9,7 @@ description: 'Start routing LLM traces to any observability platform in under 5 
   <Step title="Sign Up">
     Create your free Untrace account:
     ```bash
-    # Visit https://app.untrace.dev to sign up
+    # Visit https://untrace.dev/app to sign up
     # Or use the CLI
     npx @untrace/cli auth signup
     ```
@@ -18,7 +18,7 @@ description: 'Start routing LLM traces to any observability platform in under 5 
     After signing up, get your API key:
     ```bash
     # From the dashboard
-    https://app.untrace.dev/settings/api-keys
+    https://untrace.dev/app/settings/api-keys
 
     # Or via CLI
     npx @untrace/cli auth login
@@ -193,7 +193,7 @@ curl -X POST https://untrace.dev/api/v1/traces \
 
 ### Connect Observability Platforms
 
-1. Go to [Dashboard → Integrations](https://app.untrace.dev/integrations)
+1. Go to [Dashboard → Integrations](https://untrace.dev/app/integrations)
 2. Click "Add Integration"
 3. Select your platform and provide credentials:
 
@@ -277,7 +277,7 @@ print(f"Trace ID: {response.headers.get('X-Untrace-ID')}")
 ```
 
 2. View in dashboard:
-   - Go to [Traces](https://app.untrace.dev/traces)
+   - Go to [Traces](https://untrace.dev/app/traces)
    - Find your trace by ID
    - Verify it was routed correctly
 

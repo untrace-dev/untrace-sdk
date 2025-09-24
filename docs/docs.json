@@ -44,12 +44,12 @@
         "label": "Support"
       },
       {
-        "href": "https://app.untrace.dev",
+        "href": "https://untrace.dev/app",
         "label": "Dashboard"
       }
     ],
     "primary": {
-      "href": "https://app.untrace.dev/signup?utm_source=docs",
+      "href": "https://untrace.dev/app/signup?utm_source=docs",
       "label": "Start Free Trial",
       "type": "button"
     }
