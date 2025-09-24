@@ -76,7 +76,6 @@
   "workspaces": {
     "packages": [
       "packages/*",
-      "examples/*",
       "integ-tests",
       "tooling/*",
       "sdks/*",
