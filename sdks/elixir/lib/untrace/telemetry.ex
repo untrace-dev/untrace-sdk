@@ -157,8 +157,8 @@ defmodule Untrace.Telemetry do
 
   ## Examples
 
-      handler = fn event, measurements, metadata, config ->
-        Logger.error("Untrace error: #{inspect(metadata)}")
+      handler = fn _event, _measurements, metadata, _config ->
+        Logger.error("Untrace error: " <> inspect(metadata))
       end
 
       Untrace.Telemetry.attach_error_handler(:my_error_handler, handler, %{})
@@ -179,8 +179,8 @@ defmodule Untrace.Telemetry do
 
   ## Examples
 
-      handler = fn event, measurements, metadata, config ->
-        Logger.info("Client operation: #{inspect(metadata)}")
+      handler = fn _event, _measurements, metadata, _config ->
+        Logger.info("Client operation: " <> inspect(metadata))
       end
 
       Untrace.Telemetry.attach_client_handler(:my_client_handler, handler, %{})
@@ -201,7 +201,7 @@ defmodule Untrace.Telemetry do
 
       Untrace.Telemetry.detach_handler(:my_handler)
   """
-  @spec detach_handler(any()) :: boolean()
+  @spec detach_handler(any()) :: :ok | {:error, :not_found}
   def detach_handler(handler_id) do
     :telemetry.detach(handler_id)
   end

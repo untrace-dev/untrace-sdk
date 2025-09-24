@@ -9,7 +9,7 @@ from opentelemetry.trace import Span
 class UntraceContext:
     """Context management utilities for Untrace SDK."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the Untrace context manager."""
         self._context_keys = {
             "user_id": context.create_key("untrace.user_id"),
@@ -33,7 +33,8 @@ class UntraceContext:
         Returns:
             User ID or None
         """
-        return context.get_value(self._context_keys["user_id"])
+        value = context.get_value(self._context_keys["user_id"])
+        return value if isinstance(value, str) else None
 
     def set_session_id(self, session_id: str) -> None:
         """Set the current session ID in context.
@@ -49,7 +50,8 @@ class UntraceContext:
         Returns:
             Session ID or None
         """
-        return context.get_value(self._context_keys["session_id"])
+        value = context.get_value(self._context_keys["session_id"])
+        return value if isinstance(value, str) else None
 
     def set_workflow_id(self, workflow_id: str) -> None:
         """Set the current workflow ID in context.
@@ -65,7 +67,8 @@ class UntraceContext:
         Returns:
             Workflow ID or None
         """
-        return context.get_value(self._context_keys["workflow_id"])
+        value = context.get_value(self._context_keys["workflow_id"])
+        return value if isinstance(value, str) else None
 
     def set_run_id(self, run_id: str) -> None:
         """Set the current run ID in context.
@@ -81,7 +84,8 @@ class UntraceContext:
         Returns:
             Run ID or None
         """
-        return context.get_value(self._context_keys["run_id"])
+        value = context.get_value(self._context_keys["run_id"])
+        return value if isinstance(value, str) else None
 
     def set_metadata(self, metadata: Dict[str, Any]) -> None:
         """Set metadata in context.
@@ -97,7 +101,8 @@ class UntraceContext:
         Returns:
             Metadata dictionary or None
         """
-        return context.get_value(self._context_keys["metadata"])
+        value = context.get_value(self._context_keys["metadata"])
+        return value if isinstance(value, dict) else None
 
     def create_workflow_context(
         self,

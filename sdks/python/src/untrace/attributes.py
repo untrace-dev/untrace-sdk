@@ -1,6 +1,6 @@
 """Attribute constants and utilities for the Untrace SDK."""
 
-from typing import Any, Dict, Union
+from typing import Any, Dict, Optional, Union
 from .types import LLMSpanAttributes, VectorDBAttributes, FrameworkAttributes, WorkflowAttributes
 
 
@@ -110,7 +110,7 @@ def create_llm_attributes(
 def create_vector_db_attributes(
     system: str,
     operation: str,
-    additional_attributes: Dict[str, Any] = None,
+    additional_attributes: Optional[Dict[str, Any]] = None,
 ) -> VectorDBAttributes:
     """Create vector DB attributes.
 
@@ -132,7 +132,7 @@ def create_vector_db_attributes(
 def create_framework_attributes(
     name: str,
     operation: str,
-    additional_attributes: Dict[str, Any] = None,
+    additional_attributes: Optional[Dict[str, Any]] = None,
 ) -> FrameworkAttributes:
     """Create framework attributes.
 
@@ -154,7 +154,7 @@ def create_framework_attributes(
 def create_workflow_attributes(
     name: str,
     run_id: str,
-    additional_attributes: Dict[str, Any] = None,
+    additional_attributes: Optional[Dict[str, Any]] = None,
 ) -> WorkflowAttributes:
     """Create workflow attributes.
 

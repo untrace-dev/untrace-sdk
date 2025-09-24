@@ -1,8 +1,8 @@
 """Tracer implementation for the Untrace SDK."""
 
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Dict, Optional, Union, Sequence, Mapping
 from opentelemetry import context, trace
-from opentelemetry.trace import Span, SpanKind, StatusCode, Tracer
+from opentelemetry.trace import Span, SpanKind, StatusCode, Tracer, Link
 from opentelemetry.context import Context
 
 from .types import UntraceSpanOptions, LLMSpanAttributes
@@ -27,7 +27,7 @@ class UntraceTracer:
         """
         return self._tracer
 
-    def start_span(self, options: UntraceSpanOptions) -> Span:
+    def start_span(self, options: UntraceSpanOptions) -> Span:  # type: ignore[misc]
         """Start a new span.
 
         Args:
@@ -36,20 +36,18 @@ class UntraceTracer:
         Returns:
             Started span
         """
-        span_options = {
-            "attributes": options.attributes,
-            "kind": options.kind,
-        }
-
         parent_context = options.parent
         if parent_context is None:
             parent_context = context.get_current()
 
-        return self._tracer.start_span(
-            options.name,
-            context=parent_context,
-            **span_options
-        )
+        # Use a simpler approach that avoids type issues
+        kwargs: Dict[str, Any] = {}
+        if options.attributes:
+            kwargs['attributes'] = options.attributes
+        if options.kind:
+            kwargs['kind'] = options.kind
+
+        return self._tracer.start_span(options.name, context=parent_context, **kwargs)  # type: ignore
 
     def start_llm_span(
         self,

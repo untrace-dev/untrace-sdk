@@ -3,7 +3,7 @@
 import asyncio
 import json
 import logging
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Sequence, Mapping
 from opentelemetry.sdk.trace.export import SpanExporter, SpanExportResult, ReadableSpan
 from opentelemetry.trace import SpanKind, StatusCode
 
@@ -35,7 +35,7 @@ class UntraceExporter(SpanExporter):
                 }
             )
 
-    def export(self, spans: List[ReadableSpan]) -> SpanExportResult:
+    def export(self, spans: Sequence[ReadableSpan]) -> SpanExportResult:
         """Export spans to Untrace backend.
 
         Args:
@@ -151,7 +151,8 @@ class UntraceExporter(SpanExporter):
             # Convert attributes to regular dict for JSON serialization
             resource_attrs = dict(span.resource.attributes) if hasattr(span.resource.attributes, 'items') else span.resource.attributes
             resource_key = json.dumps(resource_attrs, sort_keys=True)
-            scope_key = f"{span.instrumentation_scope.name}:{span.instrumentation_scope.version or ''}"
+            scope = span.instrumentation_scope
+            scope_key = f"{scope.name if scope else 'unknown'}:{scope.version if scope and scope.version else ''}"
 
             if resource_key not in resource_map:
                 resource_map[resource_key] = {}
@@ -234,7 +235,7 @@ class UntraceExporter(SpanExporter):
             ]
         }
 
-    def _convert_attributes(self, attributes: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def _convert_attributes(self, attributes: Optional[Mapping[str, Any]]) -> List[Dict[str, Any]]:
         """Convert attributes to OTLP format.
 
         Args:

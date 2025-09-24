@@ -7,10 +7,10 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 try:
-    from opentelemetry.semantic_conventions.resource import ResourceAttributes
+    from opentelemetry.semantic_conventions.resource import ResourceAttributes  # type: ignore
 except ImportError:
     # Fallback for older versions
-    class ResourceAttributes:
+    class ResourceAttributes:  # type: ignore
         SERVICE_NAME = "service.name"
         SERVICE_VERSION = "service.version"
 
@@ -25,7 +25,7 @@ from .instrumentation import instrument_all, get_supported_providers
 logger = logging.getLogger(__name__)
 
 # Global state management
-_global_state = {
+_global_state: Dict[str, Any] = {
     "instance": None,
     "is_initialized": False,
 }
@@ -70,8 +70,8 @@ class Untrace:
         # Create tracer provider
         self._provider = TracerProvider(
             resource=resource,
-            active_span_processor=batch_span_processor,
         )
+        self._provider.add_span_processor(batch_span_processor)
 
         # Register provider
         trace.set_tracer_provider(self._provider)
@@ -197,7 +197,7 @@ class Untrace:
         Returns:
             Current Untrace instance or None
         """
-        return _global_state["instance"]
+        return _global_state["instance"]  # type: ignore
 
 
 def init(config: UntraceConfig) -> Untrace:
@@ -215,14 +215,14 @@ def init(config: UntraceConfig) -> Untrace:
     if _global_state["is_initialized"] and _global_state["instance"]:
         if config.debug:
             logger.info("[Untrace] SDK already initialized. Returning existing instance.")
-        return _global_state["instance"]
+        return _global_state["instance"]  # type: ignore
 
     if _global_state["is_initialized"]:
         raise RuntimeError("Untrace SDK is already initialized but instance is null.")
 
     _global_state["is_initialized"] = True
     _global_state["instance"] = Untrace(config)
-    return _global_state["instance"]
+    return _global_state["instance"]  # type: ignore
 
 
 def get_untrace() -> Untrace:
@@ -236,4 +236,4 @@ def get_untrace() -> Untrace:
     """
     if not _global_state["instance"]:
         raise RuntimeError("Untrace SDK not initialized. Call init() first.")
-    return _global_state["instance"]
+    return _global_state["instance"]  # type: ignore

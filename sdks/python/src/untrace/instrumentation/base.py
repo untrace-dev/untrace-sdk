@@ -3,7 +3,7 @@
 import functools
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from opentelemetry.trace import StatusCode
 
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class BaseProviderInstrumentation(ABC):
     """Base class for provider instrumentation."""
 
-    def __init__(self, tracer, metrics, context, provider_name: str):
+    def __init__(self, tracer: Any, metrics: Any, context: Any, provider_name: str) -> None:
         """Initialize provider instrumentation.
 
         Args:
@@ -29,7 +29,7 @@ class BaseProviderInstrumentation(ABC):
         self.metrics = metrics
         self.context = context
         self.provider_name = provider_name
-        self._original_methods = {}
+        self._original_methods: Dict[Any, Any] = {}
         self._instrumented = False
 
     @abstractmethod
@@ -42,7 +42,7 @@ class BaseProviderInstrumentation(ABC):
         """Remove instrumentation from the provider's SDK."""
         pass
 
-    def _patch_method(self, obj, method_name: str, wrapper_factory: Callable) -> None:
+    def _patch_method(self, obj: Any, method_name: str, wrapper_factory: Callable[..., Any]) -> None:
         """Patch a method with instrumentation wrapper.
 
         Args:
@@ -104,9 +104,9 @@ class BaseProviderInstrumentation(ABC):
         Returns:
             Model name
         """
-        return kwargs.get('model', default)
+        return kwargs.get('model', default)  # type: ignore
 
-    def _extract_messages_from_kwargs(self, kwargs: Dict[str, Any]) -> list:
+    def _extract_messages_from_kwargs(self, kwargs: Dict[str, Any]) -> List[Any]:
         """Extract messages from kwargs.
 
         Args:
@@ -115,7 +115,7 @@ class BaseProviderInstrumentation(ABC):
         Returns:
             List of messages
         """
-        return kwargs.get('messages', [])
+        return kwargs.get('messages', [])  # type: ignore
 
     def _extract_prompt_from_kwargs(self, kwargs: Dict[str, Any]) -> str:
         """Extract prompt from kwargs.
@@ -126,7 +126,7 @@ class BaseProviderInstrumentation(ABC):
         Returns:
             Prompt string
         """
-        return kwargs.get('prompt', '')
+        return kwargs.get('prompt', '')  # type: ignore
 
     def _extract_input_from_kwargs(self, kwargs: Dict[str, Any]) -> str:
         """Extract input from kwargs.
@@ -137,9 +137,9 @@ class BaseProviderInstrumentation(ABC):
         Returns:
             Input string
         """
-        return kwargs.get('input', '')
+        return kwargs.get('input', '')  # type: ignore
 
-    def _set_request_attributes(self, span, model: str, **kwargs) -> None:
+    def _set_request_attributes(self, span: Any, model: str, **kwargs: Any) -> None:
         """Set common request attributes on span.
 
         Args:
@@ -157,7 +157,7 @@ class BaseProviderInstrumentation(ABC):
         if 'stream' in kwargs:
             span.set_attribute("llm.request.stream", kwargs['stream'])
 
-    def _set_response_attributes(self, span, response: Any) -> None:
+    def _set_response_attributes(self, span: Any, response: Any) -> None:
         """Set common response attributes on span.
 
         Args:
@@ -169,7 +169,7 @@ class BaseProviderInstrumentation(ABC):
         if hasattr(response, 'id'):
             span.set_attribute("llm.response.id", response.id)
 
-    def _handle_usage_metrics(self, span, response: Any, model: str) -> None:
+    def _handle_usage_metrics(self, span: Any, response: Any, model: str) -> None:
         """Handle token usage and metrics recording.
 
         Args:
@@ -207,7 +207,7 @@ class BaseProviderInstrumentation(ABC):
         """
         self.metrics.record_error(error, {"operation": operation, "provider": self.provider_name})
 
-    def _create_llm_attributes(self, model: str, operation_type: str, **kwargs) -> Dict[str, Any]:
+    def _create_llm_attributes(self, model: str, operation_type: str, **kwargs: Any) -> Any:
         """Create LLM attributes for the provider.
 
         Args:

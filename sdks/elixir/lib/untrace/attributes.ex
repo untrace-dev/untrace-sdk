@@ -415,12 +415,15 @@ defmodule Untrace.Attributes do
   end
 
   defp convert_types(attributes) do
+    integer_regex = ~r/^\d+$/
+    float_regex = ~r/^\d+\.\d+$/
+
     Enum.reduce(attributes, %{}, fn {key, value}, acc ->
-      converted_value = case value do
-        v when is_binary(v) and String.match?(v, ~r/^\d+$/) -> String.to_integer(v)
-        v when is_binary(v) and String.match?(v, ~r/^\d+\.\d+$/) -> String.to_float(v)
-        v when is_binary(v) and v in ["true", "false"] -> v == "true"
-        v -> v
+      converted_value = cond do
+        is_binary(value) and String.match?(value, integer_regex) -> String.to_integer(value)
+        is_binary(value) and String.match?(value, float_regex) -> String.to_float(value)
+        is_binary(value) and value in ["true", "false"] -> value == "true"
+        true -> value
       end
 
       Map.put(acc, key, converted_value)

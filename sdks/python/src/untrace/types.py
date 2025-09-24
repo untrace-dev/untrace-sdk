@@ -1,6 +1,6 @@
 """Type definitions for the Untrace SDK."""
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 from opentelemetry.trace import Span, SpanKind, StatusCode
 from opentelemetry.context import Context
 
@@ -61,6 +61,8 @@ class UntraceConfig:
 
 class LLMSpanAttributes:
     """LLM specific span attributes."""
+
+    attributes: Dict[str, Any]
 
     def __init__(
         self,
@@ -163,6 +165,8 @@ class LLMSpanAttributes:
 class VectorDBAttributes:
     """Vector DB operation attributes."""
 
+    attributes: Dict[str, Any]
+
     def __init__(
         self,
         system: str,
@@ -225,6 +229,8 @@ class VectorDBAttributes:
 class FrameworkAttributes:
     """Framework attributes (LangChain, LlamaIndex, etc.)."""
 
+    attributes: Dict[str, Any]
+
     def __init__(
         self,
         name: str,
@@ -282,6 +288,8 @@ class FrameworkAttributes:
 
 class WorkflowAttributes:
     """Workflow attributes."""
+
+    attributes: Dict[str, Any]
 
     def __init__(
         self,
@@ -412,7 +420,7 @@ class Cost:
 
 
 # LLM Operation Types
-LLMOperationType = Union[
+LLMOperationType = Literal[
     "completion",
     "chat",
     "embedding",

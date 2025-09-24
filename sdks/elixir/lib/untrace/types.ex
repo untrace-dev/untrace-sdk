@@ -158,12 +158,8 @@ defmodule Untrace.Types do
     end
   end
 
-  defp validate_field_type(field, value, :string) when is_binary(value), do: :ok
-  defp validate_field_type(field, value, :map) when is_map(value), do: :ok
-  defp validate_field_type(field, value, :integer) when is_integer(value), do: :ok
-  defp validate_field_type(field, value, :float) when is_float(value), do: :ok
-  defp validate_field_type(field, value, :boolean) when is_boolean(value), do: :ok
-  defp validate_field_type(field, value, :list) when is_list(value), do: :ok
+  defp validate_field_type(_field, value, :string) when is_binary(value), do: :ok
+  defp validate_field_type(_field, value, :map) when is_map(value), do: :ok
 
   defp validate_field_type(field, value, expected_type) do
     {:error, :validation_error, "Field #{field} must be of type #{expected_type}, got #{inspect(value)}"}
