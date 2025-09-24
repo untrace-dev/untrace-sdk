@@ -12,10 +12,10 @@ logger = logging.getLogger(__name__)
 class GoogleInstrumentation(BaseProviderInstrumentation):
     """Google/Gemini SDK instrumentation."""
 
-    def __init__(self, tracer, metrics, context):
+    def __init__(self, tracer: Any, metrics: Any, context: Any) -> None:
         """Initialize Google instrumentation."""
         super().__init__(tracer, metrics, context, "google")
-        self._original_constructors = {}
+        self._original_constructors: Dict[str, Any] = {}
 
     def instrument(self) -> None:
         """Instrument Google client methods."""
@@ -38,12 +38,12 @@ class GoogleInstrumentation(BaseProviderInstrumentation):
         except ImportError:
             logger.warning("[Untrace] Google Generative AI not installed, skipping instrumentation")
 
-    def _wrap_generative_model_constructor(self, original_constructor):
+    def _wrap_generative_model_constructor(self, original_constructor: Callable) -> Callable:
         """Wrap GenerativeModel constructor to instrument the instance."""
         instrumentation = self
 
         @functools.wraps(original_constructor)
-        def wrapper(self, *args, **kwargs):
+        def wrapper(self: Any, *args: Any, **kwargs: Any) -> None:
             # Call original constructor
             original_constructor(self, *args, **kwargs)
 
@@ -52,7 +52,7 @@ class GoogleInstrumentation(BaseProviderInstrumentation):
 
         return wrapper
 
-    def _instrument_client_instance(self, client_instance):
+    def _instrument_client_instance(self, client_instance: Any) -> None:
         """Instrument a client instance."""
         # Instrument generate_content
         if hasattr(client_instance, 'generate_content'):
@@ -70,10 +70,10 @@ class GoogleInstrumentation(BaseProviderInstrumentation):
                 self._wrap_start_chat_sync
             )
 
-    def _wrap_generate_content_sync(self, original_method):
+    def _wrap_generate_content_sync(self, original_method: Callable) -> Callable:
         """Wrap synchronous generate_content method."""
         @functools.wraps(original_method)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             # Extract model from the instance
             model = getattr(self, 'model_name', 'unknown')
 
@@ -89,7 +89,7 @@ class GoogleInstrumentation(BaseProviderInstrumentation):
             span_name = f"google.generativeai.generate_content"
 
             # Wrap the call with tracing
-            def traced_call(span):
+            def traced_call(span: Any) -> Any:
                 # Set request attributes
                 self._set_request_attributes(span, model, **kwargs)
 
@@ -126,10 +126,10 @@ class GoogleInstrumentation(BaseProviderInstrumentation):
 
         return wrapper
 
-    def _wrap_start_chat_sync(self, original_method):
+    def _wrap_start_chat_sync(self, original_method: Callable) -> Callable:
         """Wrap synchronous start_chat method."""
         @functools.wraps(original_method)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             # Extract model from the instance
             model = getattr(self, 'model_name', 'unknown')
 
@@ -143,7 +143,7 @@ class GoogleInstrumentation(BaseProviderInstrumentation):
             span_name = f"google.generativeai.start_chat"
 
             # Wrap the call with tracing
-            def traced_call(span):
+            def traced_call(span: Any) -> Any:
                 # Set request attributes
                 self._set_request_attributes(span, model, **kwargs)
 
@@ -163,7 +163,7 @@ class GoogleInstrumentation(BaseProviderInstrumentation):
 
         return wrapper
 
-    def _set_response_attributes(self, span, response):
+    def _set_response_attributes(self, span: Any, response: Any) -> None:
         """Set Google-specific response attributes."""
         super()._set_response_attributes(span, response)
 
@@ -183,7 +183,7 @@ class GoogleInstrumentation(BaseProviderInstrumentation):
             if hasattr(usage, 'total_token_count'):
                 span.set_attribute("llm.total.tokens", usage.total_token_count)
 
-    def _handle_usage_metrics(self, span, response, model: str):
+    def _handle_usage_metrics(self, span: Any, response: Any, model: str) -> None:
         """Handle Google-specific usage metrics."""
         if hasattr(response, 'usage_metadata') and response.usage_metadata:
             usage = response.usage_metadata

@@ -12,10 +12,10 @@ logger = logging.getLogger(__name__)
 class CohereInstrumentation(BaseProviderInstrumentation):
     """Cohere SDK instrumentation."""
 
-    def __init__(self, tracer, metrics, context):
+    def __init__(self, tracer: Any, metrics: Any, context: Any) -> None:
         """Initialize Cohere instrumentation."""
         super().__init__(tracer, metrics, context, "cohere")
-        self._original_constructors = {}
+        self._original_constructors: Dict[str, Any] = {}
 
     def instrument(self) -> None:
         """Instrument Cohere client methods."""
@@ -37,12 +37,12 @@ class CohereInstrumentation(BaseProviderInstrumentation):
         except ImportError:
             logger.warning("[Untrace] Cohere not installed, skipping instrumentation")
 
-    def _wrap_cohere_constructor(self, original_constructor):
+    def _wrap_cohere_constructor(self, original_constructor: Callable) -> Callable:
         """Wrap Cohere constructor to instrument the instance."""
         instrumentation = self
 
         @functools.wraps(original_constructor)
-        def wrapper(self, *args, **kwargs):
+        def wrapper(self: Any, *args: Any, **kwargs: Any) -> None:
             # Call original constructor
             original_constructor(self, *args, **kwargs)
 
@@ -51,7 +51,7 @@ class CohereInstrumentation(BaseProviderInstrumentation):
 
         return wrapper
 
-    def _instrument_client_instance(self, client_instance):
+    def _instrument_client_instance(self, client_instance: Any) -> None:
         """Instrument a client instance."""
         # Instrument generate
         if hasattr(client_instance, 'generate'):
@@ -77,10 +77,10 @@ class CohereInstrumentation(BaseProviderInstrumentation):
                 self._wrap_embed_sync
             )
 
-    def _wrap_generate_sync(self, original_method):
+    def _wrap_generate_sync(self, original_method: Callable) -> Callable:
         """Wrap synchronous generate method."""
         @functools.wraps(original_method)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             # Extract model and prompt from kwargs
             model = kwargs.get('model', 'command')
             prompt = kwargs.get('prompt', '')
@@ -97,7 +97,7 @@ class CohereInstrumentation(BaseProviderInstrumentation):
             span_name = f"cohere.generate"
 
             # Wrap the call with tracing
-            def traced_call(span):
+            def traced_call(span: Any) -> Any:
                 # Set request attributes
                 self._set_request_attributes(span, model, **kwargs)
                 span.set_attribute("llm.request.prompt", prompt)
@@ -127,10 +127,10 @@ class CohereInstrumentation(BaseProviderInstrumentation):
 
         return wrapper
 
-    def _wrap_chat_sync(self, original_method):
+    def _wrap_chat_sync(self, original_method: Callable) -> Callable:
         """Wrap synchronous chat method."""
         @functools.wraps(original_method)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             # Extract model and message from kwargs
             model = kwargs.get('model', 'command')
             message = kwargs.get('message', '')
@@ -147,7 +147,7 @@ class CohereInstrumentation(BaseProviderInstrumentation):
             span_name = f"cohere.chat"
 
             # Wrap the call with tracing
-            def traced_call(span):
+            def traced_call(span: Any) -> Any:
                 # Set request attributes
                 self._set_request_attributes(span, model, **kwargs)
                 span.set_attribute("llm.request.message", message)
@@ -175,10 +175,10 @@ class CohereInstrumentation(BaseProviderInstrumentation):
 
         return wrapper
 
-    def _wrap_embed_sync(self, original_method):
+    def _wrap_embed_sync(self, original_method: Callable) -> Callable:
         """Wrap synchronous embed method."""
         @functools.wraps(original_method)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             # Extract model and texts from kwargs
             model = kwargs.get('model', 'embed-english-v2.0')
             texts = kwargs.get('texts', [])
@@ -193,7 +193,7 @@ class CohereInstrumentation(BaseProviderInstrumentation):
             span_name = f"cohere.embed"
 
             # Wrap the call with tracing
-            def traced_call(span):
+            def traced_call(span: Any) -> Any:
                 # Set request attributes
                 self._set_request_attributes(span, model, **kwargs)
                 span.set_attribute("llm.request.texts_count", len(texts))
@@ -224,7 +224,7 @@ class CohereInstrumentation(BaseProviderInstrumentation):
 
         return wrapper
 
-    def _set_response_attributes(self, span, response):
+    def _set_response_attributes(self, span: Any, response: Any) -> None:
         """Set Cohere-specific response attributes."""
         super()._set_response_attributes(span, response)
 
@@ -234,7 +234,7 @@ class CohereInstrumentation(BaseProviderInstrumentation):
         if hasattr(response, 'meta'):
             span.set_attribute("llm.response.meta", str(response.meta))
 
-    def _handle_usage_metrics(self, span, response, model: str):
+    def _handle_usage_metrics(self, span: Any, response: Any, model: str) -> None:
         """Handle Cohere-specific usage metrics."""
         if hasattr(response, 'meta') and hasattr(response.meta, 'billed_units'):
             billed_units = response.meta.billed_units

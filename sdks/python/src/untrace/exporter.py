@@ -52,7 +52,7 @@ class UntraceExporter(SpanExporter):
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             try:
-                result = loop.run_until_complete(self._export_spans(spans))
+                result = loop.run_until_complete(self._export_spans(list(spans)))
                 return result
             finally:
                 loop.close()
@@ -178,13 +178,13 @@ class UntraceExporter(SpanExporter):
             for scope_key, span_list in scope_map.items():
                 scope_name, scope_version = scope_key.split(":", 1)
 
-                scope = {
+                scope_info = {
                     "name": scope_name,
                     "version": scope_version if scope_version else None
                 }
 
                 scope_spans.append({
-                    "scope": scope,
+                    "scope": scope_info,
                     "spans": [self._convert_span(span) for span in span_list]
                 })
 
@@ -210,8 +210,8 @@ class UntraceExporter(SpanExporter):
             "parentSpanId": format(span.parent.span_id, '016x') if span.parent else None,
             "name": span.name,
             "kind": span.kind.value,
-            "startTimeUnixNano": str(self._time_to_nanos(span.start_time)),
-            "endTimeUnixNano": str(self._time_to_nanos(span.end_time)),
+            "startTimeUnixNano": str(self._time_to_nanos(span.start_time)) if span.start_time is not None else "0",
+            "endTimeUnixNano": str(self._time_to_nanos(span.end_time)) if span.end_time is not None else "0",
             "attributes": self._convert_attributes(span.attributes),
             "status": {
                 "code": span.status.status_code.value,
@@ -247,10 +247,12 @@ class UntraceExporter(SpanExporter):
         result = []
 
         # Convert BoundedAttributes to regular dict if needed
-        if hasattr(attributes, 'items'):
+        if attributes is None:
+            attrs_dict: Dict[str, Any] = {}
+        elif hasattr(attributes, 'items'):
             attrs_dict = dict(attributes)
         else:
-            attrs_dict = attributes
+            attrs_dict = dict(attributes) if attributes else {}
 
         for key, value in attrs_dict.items():
             if value is None:

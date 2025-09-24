@@ -12,10 +12,10 @@ logger = logging.getLogger(__name__)
 class AnthropicInstrumentation(BaseProviderInstrumentation):
     """Anthropic SDK instrumentation."""
 
-    def __init__(self, tracer, metrics, context):
+    def __init__(self, tracer: Any, metrics: Any, context: Any) -> None:
         """Initialize Anthropic instrumentation."""
         super().__init__(tracer, metrics, context, "anthropic")
-        self._original_constructors = {}
+        self._original_constructors: Dict[str, Any] = {}
 
     def instrument(self) -> None:
         """Instrument Anthropic client methods."""
@@ -39,12 +39,12 @@ class AnthropicInstrumentation(BaseProviderInstrumentation):
         except ImportError:
             logger.warning("[Untrace] Anthropic not installed, skipping instrumentation")
 
-    def _wrap_anthropic_constructor(self, original_constructor):
+    def _wrap_anthropic_constructor(self, original_constructor: Callable) -> Callable:
         """Wrap Anthropic constructor to instrument the instance."""
         instrumentation = self
 
         @functools.wraps(original_constructor)
-        def wrapper(self, *args, **kwargs):
+        def wrapper(self: Any, *args: Any, **kwargs: Any) -> None:
             # Call original constructor
             original_constructor(self, *args, **kwargs)
 
@@ -53,12 +53,12 @@ class AnthropicInstrumentation(BaseProviderInstrumentation):
 
         return wrapper
 
-    def _wrap_async_anthropic_constructor(self, original_constructor):
+    def _wrap_async_anthropic_constructor(self, original_constructor: Callable) -> Callable:
         """Wrap AsyncAnthropic constructor to instrument the instance."""
         instrumentation = self
 
         @functools.wraps(original_constructor)
-        def wrapper(self, *args, **kwargs):
+        def wrapper(self: Any, *args: Any, **kwargs: Any) -> None:
             # Call original constructor
             original_constructor(self, *args, **kwargs)
 
@@ -67,7 +67,7 @@ class AnthropicInstrumentation(BaseProviderInstrumentation):
 
         return wrapper
 
-    def _instrument_client_instance(self, client_instance):
+    def _instrument_client_instance(self, client_instance: Any) -> None:
         """Instrument a client instance."""
         # Instrument messages (chat completions)
         if hasattr(client_instance, 'messages'):
@@ -85,10 +85,10 @@ class AnthropicInstrumentation(BaseProviderInstrumentation):
                 self._wrap_completion_create_sync
             )
 
-    def _wrap_message_create_sync(self, original_method):
+    def _wrap_message_create_sync(self, original_method: Callable) -> Callable:
         """Wrap synchronous message create method."""
         @functools.wraps(original_method)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             # Extract model and messages from kwargs
             model = self._extract_model_from_kwargs(kwargs)
             messages = self._extract_messages_from_kwargs(kwargs)
@@ -106,7 +106,7 @@ class AnthropicInstrumentation(BaseProviderInstrumentation):
             span_name = f"anthropic.messages.create"
 
             # Wrap the call with tracing
-            def traced_call(span):
+            def traced_call(span: Any) -> Any:
                 # Set request attributes
                 self._set_request_attributes(span, model, **kwargs)
                 span.set_attribute("llm.request.messages", str(messages))
@@ -136,10 +136,10 @@ class AnthropicInstrumentation(BaseProviderInstrumentation):
 
         return wrapper
 
-    def _wrap_completion_create_sync(self, original_method):
+    def _wrap_completion_create_sync(self, original_method: Callable) -> Callable:
         """Wrap synchronous completion create method."""
         @functools.wraps(original_method)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             # Extract model and prompt from kwargs
             model = self._extract_model_from_kwargs(kwargs)
             prompt = self._extract_prompt_from_kwargs(kwargs)
@@ -156,7 +156,7 @@ class AnthropicInstrumentation(BaseProviderInstrumentation):
             span_name = f"anthropic.completions.create"
 
             # Wrap the call with tracing
-            def traced_call(span):
+            def traced_call(span: Any) -> Any:
                 # Set request attributes
                 self._set_request_attributes(span, model, **kwargs)
                 span.set_attribute("llm.request.prompt", prompt)
@@ -184,7 +184,7 @@ class AnthropicInstrumentation(BaseProviderInstrumentation):
 
         return wrapper
 
-    def _set_response_attributes(self, span, response):
+    def _set_response_attributes(self, span: Any, response: Any) -> None:
         """Set Anthropic-specific response attributes."""
         super()._set_response_attributes(span, response)
 
@@ -198,7 +198,7 @@ class AnthropicInstrumentation(BaseProviderInstrumentation):
         if hasattr(response, 'stop_reason'):
             span.set_attribute("llm.response.stop_reason", response.stop_reason)
 
-    def _handle_usage_metrics(self, span, response, model: str):
+    def _handle_usage_metrics(self, span: Any, response: Any, model: str) -> None:
         """Handle Anthropic-specific usage metrics."""
         if hasattr(response, 'usage') and response.usage:
             usage = response.usage

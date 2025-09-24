@@ -19,7 +19,7 @@ from .exporter import UntraceExporter
 from .metrics import UntraceMetrics
 from .tracer import UntraceTracer
 from .types import UntraceConfig
-from .instrumentation import instrument_all, get_supported_providers
+from .instrumentation_main import instrument_all, get_supported_providers
 
 
 logger = logging.getLogger(__name__)

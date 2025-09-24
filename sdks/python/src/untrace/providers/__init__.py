@@ -1,4 +1,4 @@
-"""Instrumentation package for LLM providers."""
+from typing import Optional, Any, List
 
 from .base import BaseProviderInstrumentation
 from .openai import OpenAIInstrumentation
@@ -24,7 +24,7 @@ PROVIDER_INSTRUMENTATIONS = {
 _instrumentations = {}
 
 
-def get_provider_instrumentation(provider_name: str, tracer, metrics, context):
+def get_provider_instrumentation(provider_name: str, tracer: Any, metrics: Any, context: Any) -> Optional[BaseProviderInstrumentation]:
     """Get or create a provider instrumentation instance.
 
     Args:
@@ -41,12 +41,12 @@ def get_provider_instrumentation(provider_name: str, tracer, metrics, context):
 
     if provider_name not in _instrumentations:
         instrumentation_class = PROVIDER_INSTRUMENTATIONS[provider_name]
-        _instrumentations[provider_name] = instrumentation_class(tracer, metrics, context)
+        _instrumentations[provider_name] = instrumentation_class(tracer, metrics, context)  # type: ignore
 
     return _instrumentations[provider_name]
 
 
-def instrument_provider(provider_name: str, tracer, metrics, context):
+def instrument_provider(provider_name: str, tracer: Any, metrics: Any, context: Any) -> None:
     """Instrument a specific provider.
 
     Args:
@@ -60,7 +60,7 @@ def instrument_provider(provider_name: str, tracer, metrics, context):
         instrumentation.instrument()
 
 
-def uninstrument_provider(provider_name: str):
+def uninstrument_provider(provider_name: str) -> None:
     """Remove instrumentation for a specific provider.
 
     Args:
@@ -71,7 +71,7 @@ def uninstrument_provider(provider_name: str):
         del _instrumentations[provider_name]
 
 
-def instrument_all_providers(tracer, metrics, context, providers=None):
+def instrument_all_providers(tracer: Any, metrics: Any, context: Any, providers: Optional[List[str]] = None) -> None:
     """Instrument all supported providers.
 
     Args:
@@ -92,13 +92,13 @@ def instrument_all_providers(tracer, metrics, context, providers=None):
             logger.warning(f"Failed to instrument {provider_name}: {e}")
 
 
-def uninstrument_all_providers():
+def uninstrument_all_providers() -> None:
     """Remove instrumentation for all providers."""
     for provider_name in list(_instrumentations.keys()):
         uninstrument_provider(provider_name)
 
 
-def get_supported_providers():
+def get_supported_providers() -> List[str]:
     """Get list of supported providers.
 
     Returns:

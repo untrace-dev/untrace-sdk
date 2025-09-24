@@ -13,7 +13,7 @@ from .untrace import Untrace, init, get_untrace
 from .tracer import UntraceTracer
 from .context import UntraceContext
 from .metrics import UntraceMetrics
-from .instrumentation import (
+from .instrumentation_main import (
     instrument_openai, uninstrument_openai,
     instrument_anthropic, uninstrument_anthropic,
     instrument_google, uninstrument_google,

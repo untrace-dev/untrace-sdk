@@ -12,10 +12,10 @@ logger = logging.getLogger(__name__)
 class MicrosoftInstrumentation(BaseProviderInstrumentation):
     """Microsoft Azure OpenAI SDK instrumentation."""
 
-    def __init__(self, tracer, metrics, context):
+    def __init__(self, tracer: Any, metrics: Any, context: Any) -> None:
         """Initialize Microsoft instrumentation."""
         super().__init__(tracer, metrics, context, "microsoft")
-        self._original_constructors = {}
+        self._original_constructors: Dict[str, Any] = {}
 
     def instrument(self) -> None:
         """Instrument Microsoft Azure OpenAI client methods."""
@@ -31,20 +31,20 @@ class MicrosoftInstrumentation(BaseProviderInstrumentation):
             self._original_constructors['AsyncAzureOpenAI'] = AsyncAzureOpenAI.__init__
 
             # Patch constructors to instrument instances
-            AzureOpenAI.__init__ = self._wrap_azure_openai_constructor(AzureOpenAI.__init__)
-            AsyncAzureOpenAI.__init__ = self._wrap_async_azure_openai_constructor(AsyncAzureOpenAI.__init__)
+            AzureOpenAI.__init__ = self._wrap_azure_openai_constructor(AzureOpenAI.__init__)  # type: ignore
+            AsyncAzureOpenAI.__init__ = self._wrap_async_azure_openai_constructor(AsyncAzureOpenAI.__init__)  # type: ignore
 
             self._mark_instrumented()
 
         except ImportError:
             logger.warning("[Untrace] Azure OpenAI not installed, skipping instrumentation")
 
-    def _wrap_azure_openai_constructor(self, original_constructor):
+    def _wrap_azure_openai_constructor(self, original_constructor: Callable) -> Callable:
         """Wrap AzureOpenAI constructor to instrument the instance."""
         instrumentation = self
 
         @functools.wraps(original_constructor)
-        def wrapper(self, *args, **kwargs):
+        def wrapper(self: Any, *args: Any, **kwargs: Any) -> None:
             # Call original constructor
             original_constructor(self, *args, **kwargs)
 
@@ -53,12 +53,12 @@ class MicrosoftInstrumentation(BaseProviderInstrumentation):
 
         return wrapper
 
-    def _wrap_async_azure_openai_constructor(self, original_constructor):
+    def _wrap_async_azure_openai_constructor(self, original_constructor: Callable) -> Callable:
         """Wrap AsyncAzureOpenAI constructor to instrument the instance."""
         instrumentation = self
 
         @functools.wraps(original_constructor)
-        def wrapper(self, *args, **kwargs):
+        def wrapper(self: Any, *args: Any, **kwargs: Any) -> None:
             # Call original constructor
             original_constructor(self, *args, **kwargs)
 
@@ -67,7 +67,7 @@ class MicrosoftInstrumentation(BaseProviderInstrumentation):
 
         return wrapper
 
-    def _instrument_client_instance(self, client_instance):
+    def _instrument_client_instance(self, client_instance: Any) -> None:
         """Instrument a client instance."""
         # Instrument chat completions
         if hasattr(client_instance, 'chat') and hasattr(client_instance.chat, 'completions'):
@@ -93,10 +93,10 @@ class MicrosoftInstrumentation(BaseProviderInstrumentation):
                 self._wrap_embedding_sync
             )
 
-    def _wrap_chat_completion_sync(self, original_method):
+    def _wrap_chat_completion_sync(self, original_method: Callable) -> Callable:
         """Wrap synchronous chat completion method."""
         @functools.wraps(original_method)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             # Extract model and messages from kwargs
             model = self._extract_model_from_kwargs(kwargs)
             messages = self._extract_messages_from_kwargs(kwargs)
@@ -114,7 +114,7 @@ class MicrosoftInstrumentation(BaseProviderInstrumentation):
             span_name = f"azure.openai.chat.completions.create"
 
             # Wrap the call with tracing
-            def traced_call(span):
+            def traced_call(span: Any) -> Any:
                 # Set request attributes
                 self._set_request_attributes(span, model, **kwargs)
                 span.set_attribute("llm.request.messages", str(messages))
@@ -152,10 +152,10 @@ class MicrosoftInstrumentation(BaseProviderInstrumentation):
 
         return wrapper
 
-    def _wrap_completion_sync(self, original_method):
+    def _wrap_completion_sync(self, original_method: Callable) -> Callable:
         """Wrap synchronous completion method."""
         @functools.wraps(original_method)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             # Extract model and prompt from kwargs
             model = self._extract_model_from_kwargs(kwargs)
             prompt = self._extract_prompt_from_kwargs(kwargs)
@@ -172,7 +172,7 @@ class MicrosoftInstrumentation(BaseProviderInstrumentation):
             span_name = f"azure.openai.completions.create"
 
             # Wrap the call with tracing
-            def traced_call(span):
+            def traced_call(span: Any) -> Any:
                 # Set request attributes
                 self._set_request_attributes(span, model, **kwargs)
                 span.set_attribute("llm.request.prompt", prompt)
@@ -208,10 +208,10 @@ class MicrosoftInstrumentation(BaseProviderInstrumentation):
 
         return wrapper
 
-    def _wrap_embedding_sync(self, original_method):
+    def _wrap_embedding_sync(self, original_method: Callable) -> Callable:
         """Wrap synchronous embedding method."""
         @functools.wraps(original_method)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             # Extract model and input from kwargs
             model = self._extract_model_from_kwargs(kwargs)
             input_text = self._extract_input_from_kwargs(kwargs)
@@ -226,7 +226,7 @@ class MicrosoftInstrumentation(BaseProviderInstrumentation):
             span_name = f"azure.openai.embeddings.create"
 
             # Wrap the call with tracing
-            def traced_call(span):
+            def traced_call(span: Any) -> Any:
                 # Set request attributes
                 self._set_request_attributes(span, model, **kwargs)
                 span.set_attribute("llm.request.input", str(input_text))
@@ -262,7 +262,7 @@ class MicrosoftInstrumentation(BaseProviderInstrumentation):
 
         return wrapper
 
-    def _set_response_attributes(self, span, response):
+    def _set_response_attributes(self, span: Any, response: Any) -> None:
         """Set Azure-specific response attributes."""
         super()._set_response_attributes(span, response)
 
@@ -284,8 +284,8 @@ class MicrosoftInstrumentation(BaseProviderInstrumentation):
         # Restore original constructors
         try:
             from openai import AzureOpenAI, AsyncAzureOpenAI
-            AzureOpenAI.__init__ = self._original_constructors['AzureOpenAI']
-            AsyncAzureOpenAI.__init__ = self._original_constructors['AsyncAzureOpenAI']
+            AzureOpenAI.__init__ = self._original_constructors['AzureOpenAI']  # type: ignore
+            AsyncAzureOpenAI.__init__ = self._original_constructors['AsyncAzureOpenAI']  # type: ignore
         except ImportError:
             pass
 
