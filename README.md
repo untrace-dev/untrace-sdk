@@ -281,6 +281,10 @@ This project is currently in **active development**. We have:
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=untrace-dev/untrace-sdk&type=Date)](https://www.star-history.com/#untrace-dev/untrace-sdk&Date)
+
 ## 🙏 Acknowledgments
 
 - Inspired by [Segment.io](https://segment.com)'s approach to analytics
@@ -289,11 +293,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📧 Contact
 
 - Email: team@untrace.dev
-- Discord: [Join our community](https://discord.gg/untrace)
+- Discord: [Join our community](https://untrace.dev/discord)
 - Twitter: [@untrace_dev](https://twitter.com/untrace_dev)
 
 ---
 
 **⭐ Star us on GitHub** — it helps us reach more developers and improve the product!
 
-[Report Bug](https://github.com/your-org/untrace/issues) · [Request Feature](https://github.com/your-org/untrace/issues) · [Documentation](https://docs.untrace.dev)
+[Report Bug](https://github.com/untrace-dev/untrace-sdk/issues) · [Request Feature](https://github.com/untrae-dev/untrace-sdk/issues) · [Documentation](https://docs.untrace.dev)
