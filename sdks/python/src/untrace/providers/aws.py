@@ -2,9 +2,12 @@
 
 import functools
 import logging
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Optional, TYPE_CHECKING
 
 from .base import BaseProviderInstrumentation
+
+if TYPE_CHECKING:
+    from opentelemetry.trace import Span
 
 logger = logging.getLogger(__name__)
 
@@ -12,10 +15,10 @@ logger = logging.getLogger(__name__)
 class AWSInstrumentation(BaseProviderInstrumentation):
     """AWS Bedrock SDK instrumentation."""
 
-    def __init__(self, tracer, metrics, context):
+    def __init__(self, tracer: Any, metrics: Any, context: Any) -> None:
         """Initialize AWS instrumentation."""
         super().__init__(tracer, metrics, context, "aws")
-        self._original_constructors = {}
+        self._original_constructors: Dict[str, Any] = {}
 
     def instrument(self) -> None:
         """Instrument AWS Bedrock client methods."""
@@ -73,10 +76,10 @@ class AWSInstrumentation(BaseProviderInstrumentation):
                 self._wrap_invoke_model_stream_sync
             )
 
-    def _wrap_invoke_model_sync(self, original_method):
+    def _wrap_invoke_model_sync(self, original_method: Callable[..., Any]) -> Callable[..., Any]:
         """Wrap synchronous invoke_model method."""
         @functools.wraps(original_method)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             # Extract model from kwargs
             model = kwargs.get('modelId', 'unknown')
             
@@ -93,7 +96,7 @@ class AWSInstrumentation(BaseProviderInstrumentation):
             span_name = f"aws.bedrock.invoke_model"
             
             # Wrap the call with tracing
-            def traced_call(span):
+            def traced_call(span: "Span") -> Any:
                 # Set request attributes
                 self._set_request_attributes(span, model, **kwargs)
                 span.set_attribute("llm.request.model_id", model)
@@ -130,10 +133,10 @@ class AWSInstrumentation(BaseProviderInstrumentation):
         
         return wrapper
 
-    def _wrap_invoke_model_stream_sync(self, original_method):
+    def _wrap_invoke_model_stream_sync(self, original_method: Callable[..., Any]) -> Callable[..., Any]:
         """Wrap synchronous invoke_model_with_response_stream method."""
         @functools.wraps(original_method)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             # Extract model from kwargs
             model = kwargs.get('modelId', 'unknown')
             
@@ -151,7 +154,7 @@ class AWSInstrumentation(BaseProviderInstrumentation):
             span_name = f"aws.bedrock.invoke_model_stream"
             
             # Wrap the call with tracing
-            def traced_call(span):
+            def traced_call(span: "Span") -> Any:
                 # Set request attributes
                 self._set_request_attributes(span, model, **kwargs)
                 span.set_attribute("llm.request.model_id", model)
@@ -192,7 +195,7 @@ class AWSInstrumentation(BaseProviderInstrumentation):
         else:
             return 'completion'
 
-    def _set_response_attributes(self, span, response):
+    def _set_response_attributes(self, span: "Span", response: Any) -> None:
         """Set AWS-specific response attributes."""
         super()._set_response_attributes(span, response)
         
@@ -204,7 +207,7 @@ class AWSInstrumentation(BaseProviderInstrumentation):
             if 'HTTPStatusCode' in metadata:
                 span.set_attribute("llm.response.http_status", metadata['HTTPStatusCode'])
 
-    def _handle_usage_metrics(self, span, response, model: str):
+    def _handle_usage_metrics(self, span: "Span", response: Any, model: str) -> None:
         """Handle AWS-specific usage metrics."""
         # AWS Bedrock usage metrics are typically in the response body
         # This would need to be parsed from the actual response content

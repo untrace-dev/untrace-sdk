@@ -2,9 +2,12 @@
 
 import functools
 import logging
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Optional, TYPE_CHECKING
 
 from .base import BaseProviderInstrumentation
+
+if TYPE_CHECKING:
+    from opentelemetry.trace import Span
 
 logger = logging.getLogger(__name__)
 
@@ -12,10 +15,10 @@ logger = logging.getLogger(__name__)
 class OpenAIInstrumentation(BaseProviderInstrumentation):
     """OpenAI SDK instrumentation."""
 
-    def __init__(self, tracer, metrics, context):
+    def __init__(self, tracer: Any, metrics: Any, context: Any) -> None:
         """Initialize OpenAI instrumentation."""
         super().__init__(tracer, metrics, context, "openai")
-        self._original_constructors = {}
+        self._original_constructors: Dict[str, Any] = {}
 
     def instrument(self) -> None:
         """Instrument OpenAI client methods."""
@@ -31,20 +34,20 @@ class OpenAIInstrumentation(BaseProviderInstrumentation):
             self._original_constructors['AsyncOpenAI'] = AsyncOpenAI.__init__
 
             # Patch constructors to instrument instances
-            OpenAI.__init__ = self._wrap_openai_constructor(OpenAI.__init__)
-            AsyncOpenAI.__init__ = self._wrap_async_openai_constructor(AsyncOpenAI.__init__)
+            setattr(OpenAI, '__init__', self._wrap_openai_constructor(OpenAI.__init__))
+            setattr(AsyncOpenAI, '__init__', self._wrap_async_openai_constructor(AsyncOpenAI.__init__))
 
             self._mark_instrumented()
 
         except ImportError:
             logger.warning("[Untrace] OpenAI not installed, skipping instrumentation")
 
-    def _wrap_openai_constructor(self, original_constructor):
+    def _wrap_openai_constructor(self, original_constructor: Callable[..., Any]) -> Callable[..., Any]:
         """Wrap OpenAI constructor to instrument the instance."""
         instrumentation = self
 
         @functools.wraps(original_constructor)
-        def wrapper(self, *args, **kwargs):
+        def wrapper(self: Any, *args: Any, **kwargs: Any) -> None:
             # Call original constructor
             original_constructor(self, *args, **kwargs)
 
@@ -53,12 +56,12 @@ class OpenAIInstrumentation(BaseProviderInstrumentation):
 
         return wrapper
 
-    def _wrap_async_openai_constructor(self, original_constructor):
+    def _wrap_async_openai_constructor(self, original_constructor: Callable[..., Any]) -> Callable[..., Any]:
         """Wrap AsyncOpenAI constructor to instrument the instance."""
         instrumentation = self
 
         @functools.wraps(original_constructor)
-        def wrapper(self, *args, **kwargs):
+        def wrapper(self: Any, *args: Any, **kwargs: Any) -> None:
             # Call original constructor
             original_constructor(self, *args, **kwargs)
 
@@ -67,7 +70,7 @@ class OpenAIInstrumentation(BaseProviderInstrumentation):
 
         return wrapper
 
-    def _instrument_client_instance(self, client_instance):
+    def _instrument_client_instance(self, client_instance: Any) -> None:
         """Instrument a client instance."""
         # Instrument chat completions
         if hasattr(client_instance, 'chat') and hasattr(client_instance.chat, 'completions'):
@@ -93,10 +96,10 @@ class OpenAIInstrumentation(BaseProviderInstrumentation):
                 self._wrap_embedding_sync
             )
 
-    def _wrap_chat_completion_sync(self, original_method):
+    def _wrap_chat_completion_sync(self, original_method: Callable[..., Any]) -> Callable[..., Any]:
         """Wrap synchronous chat completion method."""
         @functools.wraps(original_method)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             # Extract model and messages from kwargs
             model = self._extract_model_from_kwargs(kwargs)
             messages = self._extract_messages_from_kwargs(kwargs)
@@ -114,7 +117,7 @@ class OpenAIInstrumentation(BaseProviderInstrumentation):
             span_name = f"openai.chat.completions.create"
 
             # Wrap the call with tracing
-            def traced_call(span):
+            def traced_call(span: "Span") -> Any:
                 # Set request attributes
                 self._set_request_attributes(span, model)
                 span.set_attribute("llm.request.messages", str(messages))
@@ -154,10 +157,10 @@ class OpenAIInstrumentation(BaseProviderInstrumentation):
 
         return wrapper
 
-    def _wrap_completion_sync(self, original_method):
+    def _wrap_completion_sync(self, original_method: Callable[..., Any]) -> Callable[..., Any]:
         """Wrap synchronous completion method."""
         @functools.wraps(original_method)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             # Extract model and prompt from kwargs
             model = self._extract_model_from_kwargs(kwargs)
             prompt = self._extract_prompt_from_kwargs(kwargs)
@@ -174,7 +177,7 @@ class OpenAIInstrumentation(BaseProviderInstrumentation):
             span_name = f"openai.completions.create"
 
             # Wrap the call with tracing
-            def traced_call(span):
+            def traced_call(span: "Span") -> Any:
                 # Set request attributes
                 self._set_request_attributes(span, model)
                 span.set_attribute("llm.request.prompt", prompt)
@@ -210,10 +213,10 @@ class OpenAIInstrumentation(BaseProviderInstrumentation):
 
         return wrapper
 
-    def _wrap_embedding_sync(self, original_method):
+    def _wrap_embedding_sync(self, original_method: Callable[..., Any]) -> Callable[..., Any]:
         """Wrap synchronous embedding method."""
         @functools.wraps(original_method)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             # Extract model and input from kwargs
             model = self._extract_model_from_kwargs(kwargs)
             input_text = self._extract_input_from_kwargs(kwargs)
@@ -228,7 +231,7 @@ class OpenAIInstrumentation(BaseProviderInstrumentation):
             span_name = f"openai.embeddings.create"
 
             # Wrap the call with tracing
-            def traced_call(span):
+            def traced_call(span: "Span") -> Any:
                 # Set request attributes
                 self._set_request_attributes(span, model)
                 span.set_attribute("llm.request.input", str(input_text))
@@ -266,8 +269,8 @@ class OpenAIInstrumentation(BaseProviderInstrumentation):
         # Restore original constructors
         try:
             from openai import OpenAI, AsyncOpenAI
-            OpenAI.__init__ = self._original_constructors['OpenAI']
-            AsyncOpenAI.__init__ = self._original_constructors['AsyncOpenAI']
+            setattr(OpenAI, '__init__', self._original_constructors['OpenAI'])
+            setattr(AsyncOpenAI, '__init__', self._original_constructors['AsyncOpenAI'])
         except ImportError:
             pass
 

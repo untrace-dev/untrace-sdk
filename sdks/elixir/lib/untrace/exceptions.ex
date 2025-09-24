@@ -128,6 +128,7 @@ defmodule Untrace.Exceptions do
       Untrace.Exceptions.raise_api_error("API request failed", status_code: 500, response_body: "Internal Server Error")
   """
   @spec raise_api_error(String.t(), keyword()) :: no_return()
+  @dialyzer {:nowarn_function, [raise_api_error: 1, raise_api_error: 2]}
   def raise_api_error(message, opts \\ []) do
     raise UntraceAPIError, [message: message] ++ opts
   end
@@ -140,6 +141,7 @@ defmodule Untrace.Exceptions do
       Untrace.Exceptions.raise_validation_error("Invalid event_type", field: :event_type, value: nil)
   """
   @spec raise_validation_error(String.t(), keyword()) :: no_return()
+  @dialyzer {:nowarn_function, [raise_validation_error: 1, raise_validation_error: 2]}
   def raise_validation_error(message, opts \\ []) do
     raise UntraceValidationError, [message: message] ++ opts
   end
@@ -152,6 +154,7 @@ defmodule Untrace.Exceptions do
       Untrace.Exceptions.raise_network_error("Connection failed", reason: :econnrefused, url: "https://api.untrace.dev")
   """
   @spec raise_network_error(String.t(), keyword()) :: no_return()
+  @dialyzer {:nowarn_function, [raise_network_error: 1, raise_network_error: 2]}
   def raise_network_error(message, opts \\ []) do
     raise UntraceNetworkError, [message: message] ++ opts
   end
@@ -164,6 +167,7 @@ defmodule Untrace.Exceptions do
       Untrace.Exceptions.raise_configuration_error("Invalid API key", field: :api_key, value: nil)
   """
   @spec raise_configuration_error(String.t(), keyword()) :: no_return()
+  @dialyzer {:nowarn_function, [raise_configuration_error: 1, raise_configuration_error: 2]}
   def raise_configuration_error(message, opts \\ []) do
     raise UntraceConfigurationError, [message: message] ++ opts
   end
@@ -176,6 +180,7 @@ defmodule Untrace.Exceptions do
       Untrace.Exceptions.raise_timeout_error("Request timed out", timeout: 30000, operation: :trace)
   """
   @spec raise_timeout_error(String.t(), keyword()) :: no_return()
+  @dialyzer {:nowarn_function, [raise_timeout_error: 1, raise_timeout_error: 2]}
   def raise_timeout_error(message, opts \\ []) do
     raise UntraceTimeoutError, [message: message] ++ opts
   end
