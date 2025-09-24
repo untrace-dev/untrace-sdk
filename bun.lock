@@ -28,28 +28,6 @@
         "mint": "4.2.104",
       },
     },
-    "examples/nextjs": {
-      "name": "@unhook/examples-nextjs",
-      "version": "0.1.0",
-      "dependencies": {
-        "@untrace/sdk": "workspace:*",
-        "@untrace/ui": "workspace:*",
-        "geist": "1.5.1",
-        "next": "15.5.2",
-        "openai": "5.19.1",
-        "react": "19.1.1",
-        "react-dom": "19.1.1",
-      },
-      "devDependencies": {
-        "@types/node": "24.3.1",
-        "@types/react": "19.1.12",
-        "@types/react-dom": "19.1.9",
-        "@untrace/next-config": "workspace:*",
-        "@untrace/tsconfig": "workspace:*",
-        "tailwindcss": "4.1.13",
-        "typescript": "5.9.2",
-      },
-    },
     "integ-tests": {
       "name": "@untrace/integ-test",
       "version": "0.0.22",
@@ -223,9 +201,21 @@
         "typescript": "5.9.2",
       },
     },
+    "sdks/csharp": {
+      "name": "@untrace/sdk-csharp",
+      "version": "0.1.2",
+    },
+    "sdks/elixir": {
+      "name": "@untrace/sdk-elixir",
+      "version": "0.1.2",
+    },
+    "sdks/go": {
+      "name": "@untrace/sdk-go",
+      "version": "0.1.0",
+    },
     "sdks/js": {
       "name": "@untrace/sdk",
-      "version": "0.1.0",
+      "version": "0.1.2",
       "dependencies": {
         "@opentelemetry/api": "1.9.0",
         "@opentelemetry/core": "2.1.0",
@@ -275,7 +265,11 @@
     },
     "sdks/python": {
       "name": "@untrace/sdk-python",
-      "version": "0.1.0",
+      "version": "0.1.2",
+    },
+    "sdks/rust": {
+      "name": "@untrace/sdk-rust",
+      "version": "0.1.2",
     },
     "tooling/commitlint": {
       "name": "@untrace/commitlint-config",
@@ -1904,8 +1898,6 @@
 
     "@ungap/structured-clone": ["@ungap/structured-clone@1.3.0", "", {}, "sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g=="],
 
-    "@unhook/examples-nextjs": ["@unhook/examples-nextjs@workspace:examples/nextjs"],
-
     "@untrace/analytics": ["@untrace/analytics@workspace:packages/analytics"],
 
     "@untrace/commitlint-config": ["@untrace/commitlint-config@workspace:tooling/commitlint"],
@@ -1924,7 +1916,15 @@
 
     "@untrace/sdk": ["@untrace/sdk@workspace:sdks/js"],
 
+    "@untrace/sdk-csharp": ["@untrace/sdk-csharp@workspace:sdks/csharp"],
+
+    "@untrace/sdk-elixir": ["@untrace/sdk-elixir@workspace:sdks/elixir"],
+
+    "@untrace/sdk-go": ["@untrace/sdk-go@workspace:sdks/go"],
+
     "@untrace/sdk-python": ["@untrace/sdk-python@workspace:sdks/python"],
+
+    "@untrace/sdk-rust": ["@untrace/sdk-rust@workspace:sdks/rust"],
 
     "@untrace/tooling-testing": ["@untrace/tooling-testing@workspace:tooling/testing"],
 
@@ -2771,8 +2771,6 @@
     "functions-have-names": ["functions-have-names@1.2.3", "", {}, "sha512-xckBUXyTIqT97tq2x2AMb+g163b5JFysYk0x4qxNFwbfQkmNZoiRHb6sPzI9/QV33WeuvVYBUIiD4NzNIyqaRQ=="],
 
     "gcd": ["gcd@0.0.1", "", {}, "sha512-VNx3UEGr+ILJTiMs1+xc5SX1cMgJCrXezKPa003APUWNqQqaF6n25W8VcR7nHN6yRWbvvUTwCpZCFJeWC2kXlw=="],
-
-    "geist": ["geist@1.5.1", "", { "peerDependencies": { "next": ">=13.2.0" } }, "sha512-mAHZxIsL2o3ZITFaBVFBnwyDOw+zNLYum6A6nIjpzCGIO8QtC3V76XF2RnZTyLx1wlDTmMDy8jg3Ib52MIjGvQ=="],
 
     "gensync": ["gensync@1.0.0-beta.2", "", {}, "sha512-3hN7NaskYvMDLQY55gnW3NQ+mesEAepTqlg+VEbj7zzqEMBVNhzcGYYeqFo/TlYz6eQiFcp1HcsCZO+nGgS8zg=="],
 
