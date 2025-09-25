@@ -107,13 +107,13 @@ export class Untrace {
     // Default providers if not specified
     const defaultProviders = [
       'openai',
+      'ai-sdk',
+      'bedrock',
       // TODO: Add these as they are implemented
       // 'anthropic',
-      // 'ai-sdk',
       // 'cohere',
       // 'langchain',
       // 'llamaindex',
-      // 'bedrock',
       // 'vertex-ai',
       // 'mistral',
     ];

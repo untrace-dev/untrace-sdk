@@ -1,7 +1,9 @@
 {
   "dependencies": {
+    "@ai-sdk/amazon-bedrock": "^3.0.23",
     "@untrace/sdk": "workspace:*",
     "@untrace/ui": "workspace:*",
+    "ai": "^4.0.37",
     "geist": "1.5.1",
     "next": "15.5.2",
     "openai": "5.19.1",

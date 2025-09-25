@@ -1,4 +1,6 @@
 import type { ProviderInstrumentation } from '../types';
+import { AISDKInstrumentation } from './ai-sdk';
+import { BedrockInstrumentation } from './bedrock';
 import { OpenAIInstrumentation } from './openai';
 
 // Provider instrumentation map
@@ -36,13 +38,13 @@ export function getAvailableProviders(): string[] {
 
 // Register built-in provider instrumentations
 registerProviderInstrumentation('openai', () => new OpenAIInstrumentation());
+registerProviderInstrumentation('ai-sdk', () => new AISDKInstrumentation());
+registerProviderInstrumentation('bedrock', () => new BedrockInstrumentation());
 
 // TODO: Add more provider instrumentations as they are implemented
 // registerProviderInstrumentation('anthropic', () => new AnthropicInstrumentation());
-// registerProviderInstrumentation('ai-sdk', () => new AiSdkInstrumentation());
 // registerProviderInstrumentation('cohere', () => new CohereInstrumentation());
 // registerProviderInstrumentation('langchain', () => new LangChainInstrumentation());
 // registerProviderInstrumentation('llamaindex', () => new LlamaIndexInstrumentation());
-// registerProviderInstrumentation('bedrock', () => new BedrockInstrumentation());
-// registerProviderInstrumentation('vertexai', () => new VertexAIInstrumentation());
+// registerProviderInstrumentation('vertex-ai', () => new VertexAIInstrumentation());
 // registerProviderInstrumentation('mistral', () => new MistralInstrumentation());
