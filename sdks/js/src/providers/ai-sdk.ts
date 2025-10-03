@@ -1,6 +1,12 @@
 import { SpanKind, SpanStatusCode } from '@opentelemetry/api';
-import { LLM_ATTRIBUTES } from '../attributes';
-import type { LLMSpanAttributes } from '../types';
+import {
+  LLM_OPERATION_TYPES,
+  LLM_PROVIDERS,
+  type LLMChoice,
+  type LLMMessage,
+  type LLMUsage,
+  OpenInferenceAttributeBuilder,
+} from '../semantic-conventions';
 import { BaseProviderInstrumentation } from './base';
 
 // AI SDK function types
@@ -78,10 +84,10 @@ export class AISDKInstrumentation extends BaseProviderInstrumentation {
   private wrapGenerateText(
     originalGenerateText: GenerateTextFunction,
   ): GenerateTextFunction {
-    const instrumentation = this;
 
-    return async function (...args: unknown[]) {
-      const tracer = instrumentation.getTracer();
+
+    return async (...args: unknown[]) => {
+      const tracer = this.getTracer();
       const span = tracer.startSpan('ai-sdk.generateText', {
         kind: SpanKind.CLIENT,
       });
@@ -91,83 +97,96 @@ export class AISDKInstrumentation extends BaseProviderInstrumentation {
       try {
         // Extract request data from first argument (options object)
         const options = (args[0] as AISDKOptions) || {};
-        const request = instrumentation.extractAISDKRequest(options);
+        const request = this.extractAISDKRequest(options);
 
-        // Set initial attributes
-        const attributes: LLMSpanAttributes = {
-          [LLM_ATTRIBUTES.PROVIDER]: request.provider || 'ai-sdk',
-          [LLM_ATTRIBUTES.MODEL]: request.model || 'unknown',
-          [LLM_ATTRIBUTES.OPERATION_TYPE]: 'chat',
-        };
+        // Build OpenInference-compliant attributes
+        const attributeBuilder = new OpenInferenceAttributeBuilder()
+          .setOperation(
+            LLM_OPERATION_TYPES.CHAT,
+            request.provider || LLM_PROVIDERS.AI_SDK,
+            request.model || 'unknown',
+          )
+          .setConfig(
+            request.parameters?.temperature,
+            request.parameters?.maxOutputTokens,
+            request.parameters?.topP,
+            false, // not streaming for generateText
+          );
 
-        if (request.parameters?.temperature !== undefined) {
-          attributes[LLM_ATTRIBUTES.TEMPERATURE] =
-            request.parameters.temperature;
-        }
-        if (request.parameters?.maxOutputTokens !== undefined) {
-          attributes[LLM_ATTRIBUTES.MAX_TOKENS] =
-            request.parameters.maxOutputTokens;
-        }
-        if (request.parameters?.topP !== undefined) {
-          attributes['llm.top_p'] = request.parameters.topP;
-        }
-
-        // Add messages for chat operations
+        // Set input attributes
         if (request.messages) {
-          attributes['llm.messages'] = JSON.stringify(request.messages);
-        }
-
-        // Add prompt for completion operations
-        if (request.prompt) {
-          attributes['llm.prompt'] =
+          const messages: LLMMessage[] = Array.isArray(request.messages)
+            ? (request.messages as LLMMessage[])
+            : [{ content: String(request.messages), role: 'user' }];
+          attributeBuilder.setInput(messages);
+        } else if (request.prompt) {
+          const promptStr =
             typeof request.prompt === 'string'
               ? request.prompt
               : JSON.stringify(request.prompt);
+          attributeBuilder.setInput([{ content: promptStr, role: 'user' }]);
         }
+
+        const attributes = attributeBuilder.build();
 
         span.setAttributes(attributes);
 
         // Execute the original function
-        const result = await originalGenerateText.apply(this, args);
+        const result = await originalGenerateText(...args);
 
         // Extract response data
-        const response = instrumentation.extractAISDKResponse(
-          result as AISDKResponse,
-        );
+        const response = this.extractAISDKResponse(result as AISDKResponse);
 
-        // Set response attributes
-        const responseAttributes: Partial<LLMSpanAttributes> = {};
+        // Build response attributes using OpenInference conventions
+        const responseBuilder = new OpenInferenceAttributeBuilder();
 
-        if (response.choices) {
-          responseAttributes['llm.choices'] = JSON.stringify(response.choices);
+        // Set output choices
+        if (response.text) {
+          const choices: LLMChoice[] = [
+            {
+              finish_reason: 'stop',
+              index: 0,
+              message: {
+                content: response.text,
+                role: 'assistant',
+              },
+            },
+          ];
+          responseBuilder.setOutput(choices);
+        } else if (response.choices) {
+          responseBuilder.setOutput(response.choices as LLMChoice[]);
         }
 
+        // Set usage information
         if (response.usage) {
-          responseAttributes[LLM_ATTRIBUTES.TOTAL_TOKENS] =
-            response.usage.totalTokens || 0;
-          responseAttributes[LLM_ATTRIBUTES.COMPLETION_TOKENS] =
-            response.usage.completionTokens || 0;
-          responseAttributes[LLM_ATTRIBUTES.PROMPT_TOKENS] =
-            response.usage.promptTokens || 0;
+          const usage: LLMUsage = {
+            completion_tokens: response.usage.completionTokens,
+            prompt_tokens: response.usage.promptTokens,
+            total_tokens: response.usage.totalTokens,
+          };
+          responseBuilder.setUsage(usage);
         }
 
-        // Calculate duration
+        // Set performance metrics
         const duration = Date.now() - startTime;
-        responseAttributes[LLM_ATTRIBUTES.DURATION] = duration;
+        responseBuilder.setPerformance(duration);
 
-        span.setAttributes(responseAttributes);
+        span.setAttributes(responseBuilder.build());
         span.setStatus({ code: SpanStatusCode.OK });
 
         return result;
       } catch (error) {
         const duration = Date.now() - startTime;
 
-        span.setAttributes({
-          [LLM_ATTRIBUTES.ERROR]:
+        // Set error attributes using OpenInference conventions
+        const errorBuilder = new OpenInferenceAttributeBuilder()
+          .setError(
             error instanceof Error ? error.message : 'Unknown error',
-          [LLM_ATTRIBUTES.ERROR_TYPE]: 'api_error',
-          [LLM_ATTRIBUTES.DURATION]: duration,
-        });
+            'api_error',
+          )
+          .setPerformance(duration);
+
+        span.setAttributes(errorBuilder.build());
 
         span.setStatus({
           code: SpanStatusCode.ERROR,
@@ -184,10 +203,10 @@ export class AISDKInstrumentation extends BaseProviderInstrumentation {
   private wrapStreamText(
     originalStreamText: StreamTextFunction,
   ): StreamTextFunction {
-    const instrumentation = this;
 
-    return async function (...args: unknown[]) {
-      const tracer = instrumentation.getTracer();
+
+    return async (...args: unknown[]) => {
+      const tracer = this.getTracer();
       const span = tracer.startSpan('ai-sdk.streamText', {
         kind: SpanKind.CLIENT,
       });
@@ -197,54 +216,51 @@ export class AISDKInstrumentation extends BaseProviderInstrumentation {
       try {
         // Extract request data from first argument (options object)
         const options = (args[0] as AISDKOptions) || {};
-        const request = instrumentation.extractAISDKRequest(options);
+        const request = this.extractAISDKRequest(options);
 
-        // Set initial attributes
-        const attributes: LLMSpanAttributes = {
-          [LLM_ATTRIBUTES.PROVIDER]: request.provider || 'ai-sdk',
-          [LLM_ATTRIBUTES.MODEL]: request.model || 'unknown',
-          [LLM_ATTRIBUTES.OPERATION_TYPE]: 'chat',
-          [LLM_ATTRIBUTES.STREAM]: true,
-        };
+        // Build OpenInference-compliant attributes for streaming
+        const attributeBuilder = new OpenInferenceAttributeBuilder()
+          .setOperation(
+            LLM_OPERATION_TYPES.CHAT,
+            request.provider || LLM_PROVIDERS.AI_SDK,
+            request.model || 'unknown',
+          )
+          .setConfig(
+            request.parameters?.temperature,
+            request.parameters?.maxOutputTokens,
+            request.parameters?.topP,
+            true, // streaming enabled
+          );
 
-        if (request.parameters?.temperature !== undefined) {
-          attributes[LLM_ATTRIBUTES.TEMPERATURE] =
-            request.parameters.temperature;
-        }
-        if (request.parameters?.maxOutputTokens !== undefined) {
-          attributes[LLM_ATTRIBUTES.MAX_TOKENS] =
-            request.parameters.maxOutputTokens;
-        }
-        if (request.parameters?.topP !== undefined) {
-          attributes['llm.top_p'] = request.parameters.topP;
-        }
-
-        // Add messages for chat operations
+        // Set input attributes
         if (request.messages) {
-          attributes['llm.messages'] = JSON.stringify(request.messages);
-        }
-
-        // Add prompt for completion operations
-        if (request.prompt) {
-          attributes['llm.prompt'] =
+          const messages: LLMMessage[] = Array.isArray(request.messages)
+            ? (request.messages as LLMMessage[])
+            : [{ content: String(request.messages), role: 'user' }];
+          attributeBuilder.setInput(messages);
+        } else if (request.prompt) {
+          const promptStr =
             typeof request.prompt === 'string'
               ? request.prompt
               : JSON.stringify(request.prompt);
+          attributeBuilder.setInput([{ content: promptStr, role: 'user' }]);
         }
+
+        const attributes = attributeBuilder.build();
 
         span.setAttributes(attributes);
 
         // Execute the original function
-        const result = await originalStreamText.apply(this, args);
+        const result = await originalStreamText(...args);
 
         // For streaming, we can't easily extract the full response
         // but we can mark it as successful
         const duration = Date.now() - startTime;
 
-        span.setAttributes({
-          [LLM_ATTRIBUTES.STREAM]: true,
-          [LLM_ATTRIBUTES.DURATION]: duration,
-        });
+        const responseBuilder =
+          new OpenInferenceAttributeBuilder().setPerformance(duration);
+
+        span.setAttributes(responseBuilder.build());
 
         span.setStatus({ code: SpanStatusCode.OK });
 
@@ -252,12 +268,15 @@ export class AISDKInstrumentation extends BaseProviderInstrumentation {
       } catch (error) {
         const duration = Date.now() - startTime;
 
-        span.setAttributes({
-          [LLM_ATTRIBUTES.ERROR]:
+        // Set error attributes using OpenInference conventions
+        const errorBuilder = new OpenInferenceAttributeBuilder()
+          .setError(
             error instanceof Error ? error.message : 'Unknown error',
-          [LLM_ATTRIBUTES.ERROR_TYPE]: 'api_error',
-          [LLM_ATTRIBUTES.DURATION]: duration,
-        });
+            'api_error',
+          )
+          .setPerformance(duration);
+
+        span.setAttributes(errorBuilder.build());
 
         span.setStatus({
           code: SpanStatusCode.ERROR,
@@ -350,10 +369,35 @@ export class AISDKInstrumentation extends BaseProviderInstrumentation {
   }
 
   enable(): void {
-    // Implementation for enabling instrumentation
+    // Instrument the AI SDK module
+    try {
+      // Dynamic import for ESM compatibility
+      import('ai').then((aiModule) => {
+        this.instrument(aiModule);
+      }).catch((error) => {
+        this.debug('Failed to instrument AI SDK:', error);
+      });
+    } catch (error) {
+      this.debug('Failed to instrument AI SDK:', error);
+    }
   }
 
   disable(): void {
-    // Implementation for disabling instrumentation
+    // Restore original functions
+    try {
+      // Dynamic import for ESM compatibility
+      import('ai').then((aiModule) => {
+        if (this.originalGenerateText) {
+          (aiModule as Record<string, unknown>).generateText = this.originalGenerateText;
+        }
+        if (this.originalStreamText) {
+          (aiModule as Record<string, unknown>).streamText = this.originalStreamText;
+        }
+      }).catch((error) => {
+        this.debug('Failed to disable AI SDK instrumentation:', error);
+      });
+    } catch (error) {
+      this.debug('Failed to disable AI SDK instrumentation:', error);
+    }
   }
 }

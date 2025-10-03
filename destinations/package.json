@@ -1,0 +1,45 @@
+{
+  "bugs": {
+    "url": "https://github.com/untrace-dev/untrace-sdk/issues"
+  },
+  "dependencies": {
+    "zod": "4.1.11"
+  },
+  "description": "Untrace Destinations - Open source destination integrations and testing utilities",
+  "devDependencies": {
+    "@types/bun": "1.2.23",
+    "@types/node": "24.6.0",
+    "typescript": "5.9.2"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./destinations": "./src/destinations.ts",
+    "./providers": "./src/providers.ts",
+    "./testing": "./src/testing.ts"
+  },
+  "homepage": "https://github.com/untrace-dev/untrace-sdk#readme",
+  "keywords": [
+    "untrace",
+    "sdk",
+    "observability",
+    "tracing",
+    "destinations",
+    "integrations"
+  ],
+  "license": "MIT",
+  "main": "./src/index.ts",
+  "name": "@untrace/destinations",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/untrace-dev/untrace-sdk.git"
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "git clean -xdf .turbo node_modules dist",
+    "dev": "tsc --watch",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module",
+  "version": "0.1.0"
+}

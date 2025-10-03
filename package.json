@@ -4,6 +4,9 @@
       "@untrace/commitlint-config"
     ]
   },
+  "dependencies": {
+    "@ai-sdk/openai": "^2.0.38"
+  },
   "devDependencies": {
     "@biomejs/biome": "2.2.3",
     "@changesets/changelog-github": "0.5.1",
@@ -78,6 +81,7 @@
       "packages/*",
       "integ-tests",
       "tooling/*",
+      "destinations/*",
       "sdks/*",
       "docs"
     ]

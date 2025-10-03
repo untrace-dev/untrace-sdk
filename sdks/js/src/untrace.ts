@@ -1,4 +1,5 @@
 import { DiagConsoleLogger, DiagLogLevel, diag } from '@opentelemetry/api';
+import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
@@ -31,6 +32,8 @@ export class Untrace {
   private metrics: UntraceMetricsImpl;
   private context: UntraceContext;
   private instrumentations: ProviderInstrumentation[] = [];
+  private httpInstrumentation?: any; // HTTPLLMInstrumentation instance
+  private llmInstrumentationManager?: any; // LLMInstrumentationManager instance
 
   constructor(config: UntraceConfig) {
     // Set up config with defaults
@@ -98,56 +101,43 @@ export class Untrace {
   }
 
   /**
-   * Auto-instrument supported providers (simplified)
+   * Auto-instrument LLM SDKs and providers using the comprehensive matrix approach
+   *
+   * This approach uses a matrix of LLM SDKs and providers to determine the best
+   * instrumentation strategy for each combination, ensuring comprehensive coverage
+   * regardless of custom configurations or base URL overrides.
    */
   private autoInstrument(): void {
-    const providers = this.config.providers;
-    const instrumentations: ProviderInstrumentation[] = [];
+    // Import LLM instrumentation manager dynamically
+    import('./instrumentation/manager').then(({ LLMInstrumentationManager }) => {
+      const llmManager = new LLMInstrumentationManager({
+        enabled: true,
+      });
 
-    // Default providers if not specified
-    const defaultProviders = [
-      'openai',
-      'ai-sdk',
-      'bedrock',
-      // TODO: Add these as they are implemented
-      // 'anthropic',
-      // 'cohere',
-      // 'langchain',
-      // 'llamaindex',
-      // 'vertex-ai',
-      // 'mistral',
-    ];
+      // Enable all supported instrumentations
+      llmManager.enableAllInstrumentations().then(() => {
+        // Store reference for cleanup
+        this.llmInstrumentationManager = llmManager;
 
-    const providersToInstrument = providers.includes('all')
-      ? defaultProviders
-      : providers.filter((p) => defaultProviders.includes(p));
-
-    providersToInstrument.forEach((providerName) => {
-      try {
-        const instrumentation = getProviderInstrumentation(providerName);
-        if (instrumentation) {
-          instrumentation.initialize(this.config, this.tracer.getTracer());
-          instrumentations.push(instrumentation);
-        }
-      } catch (error) {
         if (this.config.debug) {
-          console.warn(
-            `Failed to load instrumentation for ${providerName}:`,
-            error,
-          );
+          const status = llmManager.getInstrumentationStatus();
+          const supported = llmManager.getSupportedCombinations();
+          console.log('[Untrace] LLM instrumentation enabled:', {
+            active: Object.keys(status).length,
+            supported: supported.length,
+            status
+          });
         }
+      }).catch((error) => {
+        if (this.config.debug) {
+          console.warn('[Untrace] Failed to enable some LLM instrumentations:', error);
+        }
+      });
+    }).catch((error) => {
+      if (this.config.debug) {
+        console.warn('[Untrace] Failed to load LLM instrumentation manager:', error);
       }
     });
-
-    // Register all instrumentations
-    if (instrumentations.length > 0) {
-      // TODO: Refactor ProviderInstrumentation to extend from @opentelemetry/instrumentation's Instrumentation class
-      // For now, auto-instrumentation is disabled. Use manual instrumentation via untrace.instrument() method.
-      // registerInstrumentations({
-      //   instrumentations: instrumentations,
-      // });
-      this.instrumentations = instrumentations;
-    }
   }
 
   /**
@@ -219,6 +209,24 @@ export class Untrace {
         // Ignore errors during shutdown
       }
     });
+
+    // Disable HTTP instrumentation
+    if (this.httpInstrumentation) {
+      try {
+        this.httpInstrumentation.disable();
+      } catch (_error) {
+        // Ignore errors during shutdown
+      }
+    }
+
+    // Disable LLM instrumentation manager
+    if (this.llmInstrumentationManager) {
+      try {
+        this.llmInstrumentationManager.disableAllInstrumentations();
+      } catch (_error) {
+        // Ignore errors during shutdown
+      }
+    }
 
     // Shutdown provider
     await this.provider.shutdown();

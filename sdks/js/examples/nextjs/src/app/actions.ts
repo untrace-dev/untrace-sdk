@@ -4,26 +4,29 @@ import { init } from '@untrace/sdk';
 import OpenAI from 'openai';
 
 // Initialize SDK once at module level (following OpenTelemetry best practices)
+const untraceApiKey = process.env.UNTRACE_API_KEY;
+const untraceBaseUrl = process.env.UNTRACE_BASE_URL || 'http://localhost:3000';
+
+// Initialize Untrace SDK with HTTP-based auto-instrumentation
 const untrace = init({
-  apiKey: process.env.UNTRACE_API_KEY ?? 'usk-seed-key',
-  baseUrl: process.env.UNTRACE_BASE_URL || 'http://localhost:3000',
+  apiKey: untraceApiKey || 'usk-seed-key',
+  baseUrl: untraceBaseUrl,
   debug: true, // Enable debug logging
+  disableAutoInstrumentation: false, // Enable auto-instrumentation
   exportIntervalMs: 1000, // Export every 1 second for testing
   maxBatchSize: 1, // Export immediately when 1 span is ready
-  providers: ['openai'], // Enable auto-instrumentation for OpenAI
+  // No need to specify providers - HTTP instrumentation captures all LLM requests automatically
 });
 
-// Create and instrument OpenAI client once at module level
+// Create OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const instrumentedOpenAI = untrace.instrument('openai', openai);
-
 export async function generateAIResponse(prompt: string) {
   try {
     // Auto-instrumentation will handle tracing automatically
-    const completion = await instrumentedOpenAI.chat.completions.create({
+    const completion = await openai.chat.completions.create({
       messages: [
         {
           content: prompt,

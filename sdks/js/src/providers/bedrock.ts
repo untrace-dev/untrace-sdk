@@ -1,6 +1,12 @@
 import { SpanKind, SpanStatusCode } from '@opentelemetry/api';
-import { LLM_ATTRIBUTES } from '../attributes';
-import type { LLMSpanAttributes } from '../types';
+import {
+  LLM_OPERATION_TYPES,
+  LLM_PROVIDERS,
+  type LLMChoice,
+  type LLMMessage,
+  OpenInferenceAttributeBuilder,
+  PROVIDER_SEMANTIC_CONVENTIONS,
+} from '../semantic-conventions';
 import { BaseProviderInstrumentation } from './base';
 
 // Bedrock function types
@@ -62,7 +68,7 @@ export class BedrockInstrumentation extends BaseProviderInstrumentation {
 
       return new Proxy(originalModel, {
         get: (target, prop) => {
-          const originalMethod = target[prop as keyof typeof target];
+          const originalMethod = target[prop as keyof typeof target] as unknown;
 
           if (typeof originalMethod === 'function') {
             return (...args: unknown[]) => {
@@ -76,50 +82,78 @@ export class BedrockInstrumentation extends BaseProviderInstrumentation {
                 // Extract model information
                 const modelInfo = extractModelInfo(modelId);
 
-                // Set initial attributes
-                const attributes: LLMSpanAttributes = {
-                  [LLM_ATTRIBUTES.PROVIDER]: 'aws-bedrock',
-                  [LLM_ATTRIBUTES.MODEL]: modelInfo.modelName,
-                  [LLM_ATTRIBUTES.OPERATION_TYPE]: 'chat',
-                };
+                // Build OpenInference-compliant attributes for Bedrock
+                const attributeBuilder =
+                  new OpenInferenceAttributeBuilder().setOperation(
+                    LLM_OPERATION_TYPES.CHAT,
+                    LLM_PROVIDERS.AWS_BEDROCK,
+                    modelInfo.modelName,
+                  );
+
+                // Add Bedrock-specific attributes
+                if (modelInfo.isInferenceProfile) {
+                  attributeBuilder.setAttribute(
+                    PROVIDER_SEMANTIC_CONVENTIONS.BEDROCK.INFERENCE_PROFILE,
+                    modelId,
+                  );
+                }
+                attributeBuilder.setAttribute(
+                  PROVIDER_SEMANTIC_CONVENTIONS.BEDROCK.MODEL_ARN,
+                  modelId,
+                );
 
                 // Extract request parameters if available
                 if (args[0]) {
                   const requestOptions = args[0] as BedrockOptions;
 
-                  if (requestOptions.temperature !== undefined) {
-                    attributes[LLM_ATTRIBUTES.TEMPERATURE] =
-                      requestOptions.temperature;
-                  }
-                  if (requestOptions.maxOutputTokens !== undefined) {
-                    attributes[LLM_ATTRIBUTES.MAX_TOKENS] =
-                      requestOptions.maxOutputTokens;
-                  }
-                  if (requestOptions.topP !== undefined) {
-                    attributes['llm.top_p'] = requestOptions.topP;
-                  }
+                  // Set configuration parameters
+                  attributeBuilder.setConfig(
+                    requestOptions.temperature,
+                    requestOptions.maxOutputTokens,
+                    requestOptions.topP,
+                    false, // Bedrock doesn't stream by default
+                  );
+
+                  // Set input attributes
                   if (requestOptions.messages) {
-                    attributes['llm.messages'] = JSON.stringify(
+                    const messages: LLMMessage[] = Array.isArray(
                       requestOptions.messages,
-                    );
-                  }
-                  if (requestOptions.prompt) {
-                    attributes['llm.prompt'] =
+                    )
+                      ? (requestOptions.messages as LLMMessage[])
+                      : [
+                        {
+                          content: String(requestOptions.messages),
+                          role: 'user',
+                        },
+                      ];
+                    attributeBuilder.setInput(messages);
+                  } else if (requestOptions.prompt) {
+                    const promptStr =
                       typeof requestOptions.prompt === 'string'
                         ? requestOptions.prompt
                         : JSON.stringify(requestOptions.prompt);
+                    attributeBuilder.setInput([
+                      { content: promptStr, role: 'user' },
+                    ]);
                   }
                 }
+
+                const attributes = attributeBuilder.build();
 
                 span.setAttributes(attributes);
 
                 // Execute the original method
-                const result = originalMethod.apply(target, args);
+                const result = (
+                  originalMethod as (...args: unknown[]) => unknown
+                ).apply(target, args);
 
                 // Handle both sync and async results
-                if (result && typeof result.then === 'function') {
+                if (
+                  result &&
+                  typeof (result as Promise<unknown>).then === 'function'
+                ) {
                   // Async result
-                  return result
+                  return (result as Promise<unknown>)
                     .then((response: unknown) => {
                       const duration = Date.now() - startTime;
 
@@ -128,26 +162,28 @@ export class BedrockInstrumentation extends BaseProviderInstrumentation {
                         response as BedrockResponse,
                       );
 
-                      const responseAttributes: Partial<LLMSpanAttributes> = {};
+                      // Build response attributes using OpenInference conventions
+                      const responseBuilder =
+                        new OpenInferenceAttributeBuilder();
 
                       if (responseData.choices) {
-                        responseAttributes['llm.choices'] = JSON.stringify(
-                          responseData.choices,
+                        responseBuilder.setOutput(
+                          responseData.choices as LLMChoice[],
                         );
                       }
 
                       if (responseData.usage) {
-                        responseAttributes[LLM_ATTRIBUTES.TOTAL_TOKENS] =
-                          responseData.usage.totalTokens || 0;
-                        responseAttributes[LLM_ATTRIBUTES.COMPLETION_TOKENS] =
-                          responseData.usage.completionTokens || 0;
-                        responseAttributes[LLM_ATTRIBUTES.PROMPT_TOKENS] =
-                          responseData.usage.promptTokens || 0;
+                        responseBuilder.setUsage({
+                          completion_tokens:
+                            responseData.usage.completionTokens,
+                          prompt_tokens: responseData.usage.promptTokens,
+                          total_tokens: responseData.usage.totalTokens,
+                        });
                       }
 
-                      responseAttributes[LLM_ATTRIBUTES.DURATION] = duration;
+                      responseBuilder.setPerformance(duration);
 
-                      span.setAttributes(responseAttributes);
+                      span.setAttributes(responseBuilder.build());
                       span.setStatus({ code: SpanStatusCode.OK });
                       span.end();
 
@@ -156,14 +192,17 @@ export class BedrockInstrumentation extends BaseProviderInstrumentation {
                     .catch((error: unknown) => {
                       const duration = Date.now() - startTime;
 
-                      span.setAttributes({
-                        [LLM_ATTRIBUTES.ERROR]:
+                      // Set error attributes using OpenInference conventions
+                      const errorBuilder = new OpenInferenceAttributeBuilder()
+                        .setError(
                           error instanceof Error
                             ? error.message
                             : 'Unknown error',
-                        [LLM_ATTRIBUTES.ERROR_TYPE]: 'api_error',
-                        [LLM_ATTRIBUTES.DURATION]: duration,
-                      });
+                          'api_error',
+                        )
+                        .setPerformance(duration);
+
+                      span.setAttributes(errorBuilder.build());
 
                       span.setStatus({
                         code: SpanStatusCode.ERROR,
@@ -181,9 +220,10 @@ export class BedrockInstrumentation extends BaseProviderInstrumentation {
                 // Sync result
                 const duration = Date.now() - startTime;
 
-                span.setAttributes({
-                  [LLM_ATTRIBUTES.DURATION]: duration,
-                });
+                const syncResponseBuilder =
+                  new OpenInferenceAttributeBuilder().setPerformance(duration);
+
+                span.setAttributes(syncResponseBuilder.build());
 
                 span.setStatus({ code: SpanStatusCode.OK });
                 span.end();
@@ -192,12 +232,15 @@ export class BedrockInstrumentation extends BaseProviderInstrumentation {
               } catch (error) {
                 const duration = Date.now() - startTime;
 
-                span.setAttributes({
-                  [LLM_ATTRIBUTES.ERROR]:
+                // Set error attributes using OpenInference conventions
+                const errorBuilder = new OpenInferenceAttributeBuilder()
+                  .setError(
                     error instanceof Error ? error.message : 'Unknown error',
-                  [LLM_ATTRIBUTES.ERROR_TYPE]: 'api_error',
-                  [LLM_ATTRIBUTES.DURATION]: duration,
-                });
+                    'api_error',
+                  )
+                  .setPerformance(duration);
+
+                span.setAttributes(errorBuilder.build());
 
                 span.setStatus({
                   code: SpanStatusCode.ERROR,
@@ -218,11 +261,25 @@ export class BedrockInstrumentation extends BaseProviderInstrumentation {
   }
 
   enable(): void {
-    // Implementation for enabling instrumentation
+    // Instrument the Bedrock module
+    try {
+      // Dynamic import for ESM compatibility
+      import('@ai-sdk/amazon-bedrock')
+        .then((bedrockModule) => {
+          this.instrument(bedrockModule);
+        })
+        .catch((error) => {
+          this.debug('Failed to instrument Bedrock:', error);
+        });
+    } catch (error) {
+      this.debug('Failed to instrument Bedrock:', error);
+    }
   }
 
   disable(): void {
-    // Implementation for disabling instrumentation
+    // Note: Bedrock instrumentation uses a proxy, so we can't easily restore
+    // The proxy will be garbage collected when the instrumentation is disabled
+    this.debug('Bedrock instrumentation disabled');
   }
 }
 

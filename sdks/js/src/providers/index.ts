@@ -38,8 +38,10 @@ export function getAvailableProviders(): string[] {
 
 // Register built-in provider instrumentations
 registerProviderInstrumentation('openai', () => new OpenAIInstrumentation());
-registerProviderInstrumentation('ai-sdk', () => new AISDKInstrumentation());
 registerProviderInstrumentation('bedrock', () => new BedrockInstrumentation());
+
+// Register SDK instrumentations (these wrap multiple providers)
+registerProviderInstrumentation('ai-sdk', () => new AISDKInstrumentation());
 
 // TODO: Add more provider instrumentations as they are implemented
 // registerProviderInstrumentation('anthropic', () => new AnthropicInstrumentation());
